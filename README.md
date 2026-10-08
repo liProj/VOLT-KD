@@ -8,12 +8,12 @@ Research code, aggregate experimental results, and the revised Chinese and polis
 
 - [Polished English LaTeX](paper/en/manuscript_en.tex) and [PDF](paper/en/manuscript_en.pdf)
 - [Chinese LaTeX](paper/zh/manuscript_zh_v4.tex) and [PDF](paper/zh/manuscript_zh_v4.pdf)
-- Each language directory includes all 22 vector figures. The 30 references are embedded in the LaTeX source; no BibTeX run is required.
-- The English edition translates the revised Chinese manuscript, including supplementary information. Its 21 tables preserve the original numerical results.
+- The English main manuscript includes 13 figures and 12 tables; its [standalone supplement](paper/supplement_en/supplementary_en.tex) ([PDF](paper/supplement_en/supplementary_en.pdf)) contains figures S1–S9 and tables S1–S9. Each compiles independently with its own bibliography. The Chinese edition retains all 22 figures in one document.
+- The English main manuscript and supplement together translate the Chinese edition. Their 21 tables preserve the original numerical results.
 
 Literature revision (8 October 2026): Related Work incorporates ten additional papers from 2025–2026. Both manuscripts contain 30 references, including 10 from 2026 and 8 from 2025. Table 3 identifies its published and preprint sources. See the [source audit and update record](docs/literature_update_2026-10-08.md).
 
-Figure 1 update (9 October 2026): both manuscripts use the user-supplied vector main figure and matching four-panel captions. Current length: English 33 pages; Chinese 35 pages.
+Figure 1 update (9 October 2026): both manuscripts use the user-supplied vector main figure and matching four-panel captions. Current length: English main 24 pages, independent English supplement 10 pages; Chinese combined 35 pages.
 
 ## Main results
 
@@ -35,7 +35,7 @@ These are existing study results, not new runs performed while preparing this re
 - code/: preprocessing, models, teachers, student training, evaluation, analysis, and plotting.
 - results/: aggregate per-seed results and analysis tables.
 - configs/run_arguments.json: recorded arguments from completed experiments, with machine-specific paths made relative.
-- paper/en/ and paper/zh/: self-contained manuscripts and final vector figures.
+- paper/en/, paper/supplement_en/, and paper/zh/: self-contained English main manuscript, English supplement, and Chinese manuscript with their vector figures.
 - docs/: configuration mapping and editorial/validation notes.
 
 Raw recordings, patient-level metadata/predictions, checkpoints, teacher logits, temporary files, and downloaded third-party papers are not distributed here. Obtain data and teacher resources from their original publishers.
@@ -113,6 +113,11 @@ English, from paper/en/:
 
     xelatex -interaction=nonstopmode -halt-on-error manuscript_en.tex
     xelatex -interaction=nonstopmode -halt-on-error manuscript_en.tex
+
+Supplement, independently from paper/supplement_en/:
+
+    xelatex -interaction=nonstopmode -halt-on-error supplementary_en.tex
+    xelatex -interaction=nonstopmode -halt-on-error supplementary_en.tex
 
 Chinese, from paper/zh/, uses XeLaTeX and the Windows Chinese fonts specified in the source. On another operating system, select an installed CTeX font set before compiling.
 

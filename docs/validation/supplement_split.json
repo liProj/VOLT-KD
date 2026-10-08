@@ -1,0 +1,32 @@
+{
+  "split_documents": [
+    {
+      "date": "2026-10-09",
+      "file": "manuscript_en",
+      "pages": 24,
+      "figures": 13,
+      "tables": 12,
+      "references": 30,
+      "unresolved_references": 0,
+      "compilation_errors": [],
+      "margin_issues": []
+    },
+    {
+      "date": "2026-10-09",
+      "file": "supplementary_en",
+      "pages": 10,
+      "figures": 9,
+      "tables": 9,
+      "references": 5,
+      "unresolved_references": 0,
+      "compilation_errors": [],
+      "margin_issues": []
+    }
+  ],
+  "all_21_table_bodies_preserved": true,
+  "all_22_figures_preserved": true,
+  "equations_preserved": true,
+  "supplementary_numbering": "S1-S9 for figures and tables",
+  "supplement_has_own_five_references": true,
+  "independent_compilation": true
+}

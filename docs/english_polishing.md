@@ -48,3 +48,7 @@ Four Related Work subsections now integrate compact modeling, foundation models,
 ## Figure 1 replacement — 9 October 2026
 
 Replaced Figure 1 in both languages with the user-supplied vector PDF, preserved byte for byte (424 vector paths; no raster images). Captions now describe panels (a)–(d). The English PDF has 33 pages and the Chinese PDF has 35 pages. Figure pages and adjacent pages were rendered and checked. No scientific text, table, equation or reference outside the Figure 1 block changed.
+
+## Independent supplement — 9 October 2026
+
+The previous combined English document is now split into a 24-page main manuscript (13 figures, 12 tables, 30 references) and a standalone 10-page supplement (9 figures, 9 tables, 5 locally numbered references). Supplementary sections and figures/tables use S prefixes. Main-to-supplement references explicitly name Supplementary Tables; reverse references identify the main manuscript. All 21 original table bodies, displayed equations and 22 figures are preserved across the two documents. Both compile independently without external auxiliary files. All supplementary pages and affected main pages were visually checked. The Chinese edition remains combined.
