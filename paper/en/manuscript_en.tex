@@ -84,7 +84,7 @@ For a ten-second twelve-lead recording sampled at 100 Hz, the student receives $
 VOLT-KD combines amplitude-preserving preprocessing, a lightweight student backbone, and hierarchical supervision during training (Figure~\ref{fig:framework}). Millivolt inputs preserve waveform voltage, and multiscale convolution with short-sequence modeling extracts compact features. Superclass labels, subclass labels, and ECGFounder teacher probabilities jointly supervise training. At inference, the teacher and auxiliary subclass head are removed, retaining only the student backbone and five-class prediction head.
 \begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{f02_architecture.pdf}
-\caption{Amplitude-preserving training and inference. Higher-rate recordings, teacher soft labels, and diagnostic subclasses are used only during training. Inference maps a 100 Hz ECG to five diagnostic superclasses. Complete VOLT-KD uses superclass, subclass, and teacher supervision.}
+\caption{Overview of VOLT-KD. (a) A 500 Hz ECGFounder teacher provides cross-fitted soft labels for superclass and subclass supervision. (b) The compact student processes 100 Hz millivolt inputs and retains only the five-superclass head at deployment, with 107,189 parameters. (c) The multiscale depthwise-separable residual block uses dilation rates 1, 2, and 4 with a shared pointwise projection. (d) ADC-to-millivolt calibration and per-lead median centering preserve voltage amplitude. GAP and GMP denote global average and maximum pooling.}
 \label{fig:framework}
 \end{figure}
 

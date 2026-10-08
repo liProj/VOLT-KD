@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-09",
+  "manuscript": "manuscript_en",
+  "pages": 33,
+  "figure1_page": 5,
+  "figure1_sha256": "e3d91ac3e065b0720dbe2cf24e8c2e0014237356ff2701a414f1e564f079f4dd",
+  "user_pdf_preserved_byte_for_byte": true,
+  "source_vector_paths": 424,
+  "only_figure1_block_changed_in_tex": true,
+  "log_issues": []
+}

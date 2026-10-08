@@ -11,7 +11,9 @@ Research code, aggregate experimental results, and the revised Chinese and polis
 - Each language directory includes all 22 vector figures. The 30 references are embedded in the LaTeX source; no BibTeX run is required.
 - The English edition translates the revised Chinese manuscript, including supplementary information. Its 21 tables preserve the original numerical results.
 
-Literature revision (8 October 2026): Related Work incorporates ten additional papers from 2025–2026. Both 33-page manuscripts contain 30 references, including 10 from 2026 and 8 from 2025. Table 3 identifies its published and preprint sources. See the [source audit and update record](docs/literature_update_2026-10-08.md).
+Literature revision (8 October 2026): Related Work incorporates ten additional papers from 2025–2026. Both manuscripts contain 30 references, including 10 from 2026 and 8 from 2025. Table 3 identifies its published and preprint sources. See the [source audit and update record](docs/literature_update_2026-10-08.md).
+
+Figure 1 update (9 October 2026): both manuscripts use the user-supplied vector main figure and matching four-panel captions. Current length: English 33 pages; Chinese 35 pages.
 
 ## Main results
 

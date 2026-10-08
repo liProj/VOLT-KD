@@ -44,3 +44,7 @@ Translation preserves the main/SI allocation. The initial translation introduced
 ## Literature revision — 8 October 2026
 
 Four Related Work subsections now integrate compact modeling, foundation models, diagnostic supervision, amplitude information and lead availability. The English text was polished after expansion. See LITERATURE_UPDATE.md for the 30-entry reference audit and software attribution.
+
+## Figure 1 replacement — 9 October 2026
+
+Replaced Figure 1 in both languages with the user-supplied vector PDF, preserved byte for byte (424 vector paths; no raster images). Captions now describe panels (a)–(d). The English PDF has 33 pages and the Chinese PDF has 35 pages. Figure pages and adjacent pages were rendered and checked. No scientific text, table, equation or reference outside the Figure 1 block changed.
