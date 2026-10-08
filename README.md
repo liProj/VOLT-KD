@@ -8,8 +8,10 @@ Research code, aggregate experimental results, and the revised Chinese and polis
 
 - [Polished English LaTeX](paper/en/manuscript_en.tex) and [PDF](paper/en/manuscript_en.pdf)
 - [Chinese LaTeX](paper/zh/manuscript_zh_v4.tex) and [PDF](paper/zh/manuscript_zh_v4.pdf)
-- Each language directory includes all 22 vector figures. References are embedded in the LaTeX source; no BibTeX run is required.
+- Each language directory includes all 22 vector figures. The 30 references are embedded in the LaTeX source; no BibTeX run is required.
 - The English edition translates the revised Chinese manuscript, including supplementary information. Its 21 tables preserve the original numerical results.
+
+Literature revision (8 October 2026): Related Work incorporates ten additional papers from 2025–2026. Both 33-page manuscripts contain 30 references, including 10 from 2026 and 8 from 2025. Table 3 identifies its published and preprint sources. See the [source audit and update record](docs/literature_update_2026-10-08.md).
 
 ## Main results
 
@@ -114,4 +116,4 @@ Chinese, from paper/zh/, uses XeLaTeX and the Windows Chinese fonts specified in
 
 ## Release validation
 
-The English manuscript was compiled and visually reviewed. All 21 tables retain their numerical cells, equations and bibliography are unchanged, and all 22 figures have English labels. Python files passed syntax compilation and path-resolution checks. Full training was not repeated during repository preparation. See [editorial notes](docs/english_polishing.md).
+The English manuscript was compiled and visually reviewed. All 21 tables retain their numerical cells and displayed equations are unchanged. Both language editions now contain 30 matching references; all 22 English figures have English labels. Python files passed syntax compilation and path-resolution checks. Full training was not repeated during repository preparation. See [editorial notes](docs/english_polishing.md).

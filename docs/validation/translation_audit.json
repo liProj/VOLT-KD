@@ -1,9 +1,9 @@
 {
-  "translated_chinese_lines": 345,
+  "reference_count": 30,
   "tables_numeric_cells_unchanged": 21,
   "figures": 22,
   "equations_unchanged": true,
-  "bibliography_unchanged": true,
+  "bibliography_matches_chinese": true,
   "all_english": true,
   "layout_errors": 0,
   "figure_checks": [

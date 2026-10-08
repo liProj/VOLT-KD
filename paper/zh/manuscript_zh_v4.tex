@@ -44,18 +44,25 @@ VOLT-KD 具有三个相互衔接的特点。首先，信息保留作用于学习
 
 VOLT-KD 将诊断信息保留、紧凑特征提取与训练期知识学习结合，使有限的推理容量能够利用物理电压和多层次监督。
 \section{相关工作（Related Work）}
-\subsection{紧凑心电图分类网络}
-紧凑网络通过卷积、注意力和序列模块在有限参数下提取心电图特征。MSCA-Mamba 采用多尺度卷积、SE 注意力和单向状态空间模块，以约十二万参数完成多标签分类\cite{cetintas2026}。这一路线重点优化不同时间尺度的特征提取和聚合。本文继承多尺度建模思想，以深度可分离卷积和下采样降低特征提取及后续序列处理的开销，并将物理幅值作为输入设计的重要因素。两者在预处理和骨干内部计算方式上的差异，为本文的输入对照与效率评价提供了直接比较对象。
+\subsection{紧凑网络与多标签依赖建模}
+紧凑心电图分类的关键是以有限计算量联合表征局部波形、长程节律和导联间关系。MSCA-Mamba 由 Cetintas 于 2026 年发表，采用多尺度卷积、SE 注意力和单向状态空间模块，以约十二万参数完成多标签分类\cite{cetintas2026}。Chimera 通过二维状态空间结构建模动态时间与变量关系\cite{behrouz2024}；2025 年的 MS-LTCAF 则对导联及时间位置进行协同加权\cite{feng2025}。同年的 ECG-Mamba 将视觉 Mamba 适配于十二导联信号，并引入 Non-Uniform-Mix 数据增强\cite{jiang2025}。这些方法从特征聚合、长程依赖和训练样本变化等角度提高表征能力。
 
-近期方法进一步拓展了这一方向。Chimera 以二维状态空间结构建模动态时间与变量关系\cite{behrouz2024}，MS-LTCAF 对导联及时间位置进行协同加权\cite{feng2025}。DBA-ASFNet 已采用深度可分离卷积与双向 GRU，并融合人口信息\cite{luo2025}；本文使用这些成熟组件构造紧凑学生，重点研究幅值输入及训练监督的组合。CNN--FFT 通过确定性频域分支补充时域表征\cite{malik2026}。这些路线表明，紧凑分类的性能既依赖计算结构，也依赖送入结构的信息种类。本文从物理电压这一信息来源出发，以受控输入对照连接设计与结果。
+另一类方法通过补充信息来源或标签关系改善诊断。DBA-ASFNet 将深度可分离卷积、双向 GRU 与人口信息融合\cite{luo2025}，CNN--FFT 以确定性频域分支补充时域特征\cite{malik2026}。2026 年的 MAR-GCNet 将多尺度注意力特征与标签图卷积结合，显式建模多种异常的共现关系\cite{luomar2026}。标签关系也可以通过训练目标进入表征学习：VOLT-KD 采用诊断大类与子类的联合监督，在训练中利用更细粒度的诊断标签，部署时保留五大类输出。本文采用成熟的紧凑组件构造学生，并通过固定骨干的输入对照检验物理电压信息的作用，使网络计算结构与输入信息保留形成可分别评价的设计因素。
 
-\subsection{预训练表征与知识迁移}
-自监督学习利用大规模心电信号建立可迁移表征。Mehari 与 Strodthoff 研究了十二导联自监督学习对标签效率与噪声条件下性能的影响\cite{mehari2022}；HeartBEiT 通过图像式心电图预训练支持下游诊断\cite{vaid2023}。ECGFounder 在超过一千万条记录上进行监督预训练\cite{li2025}，ECG-FM 则构建开放的自监督心电图基础模型\cite{mckeen2025}。这些研究为利用历史数据中的诊断知识提供了基础。
+\subsection{基础模型与自监督心电图表征}
+自监督学习为心电图分类提供了利用未标注信号的途径。Mehari 与 Strodthoff 研究了十二导联自监督学习的标签效率与噪声鲁棒性\cite{mehari2022}，HeartBEiT 通过图像式心电图预训练支持下游诊断\cite{vaid2023}。2025 年发表的 ECGFounder 在超过一千万条记录上进行监督预训练\cite{li2025}；ECG-FM 结合掩码重建、对比学习和心电图增强，构建开放的基础模型\cite{mckeen2025}。ECG-JEPA 则预测被遮蔽片段的潜在特征，在十个公开数据库组成的预训练集合上学习表征，为依赖信号重建或手工增强的学习目标提供另一种选择\cite{weimann2025}。
 
-将大模型知识迁移到轻量学生，可使预训练资源服务于资源受限推理。Qin 等的 MVKT-ECG 使用多视图知识迁移和多标签蒸馏，将多导联信息传递给单导联学生\cite{qin2023}。本文关注固定十二导联输入下的轻量分类，通过五个诊断大类、二十三个诊断子类和教师概率共同组织训练目标。教师输入为 500 Hz，学生输入为 100 Hz，额外监督集中于训练阶段。相同学生的组件比较进一步说明这些监督对整体指标与不同类别的作用。Mert 等近期比较研究将卷积、状态空间、循环、时频变换和 ECGFounder 微调纳入同一五类任务，并以异构集成进一步提高分数\cite{mert2026}。本文以其单模型和集成结果作为不同推理配置的文献参照，评价轻量单模型的性能位置。
+2026 年的研究进一步关注基础模型的任务覆盖与数据来源。ECG-LFM 结合上下文对比、掩码建模和多片段对比学习，将预训练表征用于心血管疾病预测及遗传关联分析\cite{lin2026}；DeepECG 系统评价监督与自监督基础模型的多任务表现、外部泛化和计算效率\cite{nolin2026}。Khattak 等研究表明，预训练数据的组成会影响对比学习基础模型的性能与泛化\cite{khattak2026}。这些研究说明，教师知识的价值既取决于学习目标，也取决于训练数据和下游任务。VOLT-KD 将已有 ECGFounder 的知识转化为训练期概率监督，使 100 Hz 紧凑学生利用 500 Hz 教师的诊断信息，并通过学生端的逐项监督比较评价实际收益。
 
-\subsection{幅值处理与诊断信息保留}
-心电图信号中的幅值既受采集条件影响，也包含诊断相关信息。近年的 DeepECG 研究将幅值范围处理纳入跨来源预处理，并系统评价基础模型的外部表现与效率\cite{nolin2026}。该工作为保留幅值的处理原则提供了当代研究背景。本文进一步将这一原则落实到约十万参数的分类器，以电压探针刻画输入差异，用两个紧凑骨干验证实际分类收益，并用教师—学生比较揭示监督的类别作用。由此，幅值处理从一个预处理选项转化为可以通过模型行为和分类结果检验的设计因素。
+\subsection{知识蒸馏与训练期诊断监督}
+知识蒸馏通过教师输出或中间表征指导学生学习，为降低部署开销提供了有效途径。MVKT-ECG 结合多视图知识迁移和多标签蒸馏，将多导联信息传递给单导联学生\cite{qin2023}。2026 年的 HMT-KD 在两个主教师与最终学生之间引入教师助理，并联合响应蒸馏和特征蒸馏完成知识迁移\cite{beigzadeh2026}。同年的 SKD-AMBRNet 从学生不同深度的残差分支构造辅助自教师，利用空间和通道注意力增强内部监督\cite{qian2026}。MDOT 则将医师定义的心率、QRS 时限、ST 改变和 QTc 等信息融入教师，并通过动量蒸馏指导学生\cite{yisimitila2025}。三类方法分别从教师层级、网络内部知识和临床先验设计监督来源。
+
+VOLT-KD 将监督设计与幅值保留共同纳入轻量学习流程。五个诊断大类提供任务目标，二十三个诊断子类提供细粒度标签，交叉拟合教师概率提供软监督。教师及子类辅助头集中于训练阶段，最终由单个紧凑学生完成推理。本文关注这些信息来源在同一学生中的互补作用，分别比较输入表示、子类监督和蒸馏配置，并分析各诊断类别的响应。Mert 等于 2026 年 9 月发布的比较研究在同一五类任务中评价 1D-ResNet18、Bidirectional Mamba、xLSTM、CWT-ViT-KAN、ECGFounder 微调及异构集成\cite{mert2026}，为本文评价轻量单模型在不同计算配置中的性能位置提供了近期参照。
+
+\subsection{幅值信息、信号质量与导联可用性}
+心电图的物理幅值既受采集条件影响，也包含与诊断有关的信息。DeepECG 将幅值范围处理纳入跨来源预处理\cite{nolin2026}，为研究幅值保留提供了近期背景。VOLT-KD 进一步以逐记录、逐导联 z-score 和毫伏输入作为受控比较，通过电压探针、两个紧凑骨干及增益干预，将输入表示的变化与分类性能及模型响应联系起来。其研究重点是确定轻量网络能够利用哪些进入模型前保留下来的信息，并量化其类别分布。
+
+导联缺失和信号污染则改变了可供分类的观测信息。2025 年的 TolerantECG 将心电图与知识检索增强的文本报告进行对比学习，并结合受污染或缺失导联信号的自监督学习，以支持任意导联子集和噪声条件\cite{nguyen2025}。2026 年 Su 等提出跨导联蒸馏系统，由十二导联教师指导轻量单导联学生进行正常与异常筛查\cite{su2026}。这些工作分别强调不完整信号表征和跨导联部署。本文以十二导联五大类分类为主要任务，同时评价分别训练的六肢体导联与单 II 导联 VOLT-KD 学生，以及完整模型在测试期噪声和随机缺失导联下的表现。由此，输入信息保留、训练期知识迁移和采集条件变化在同一框架内形成相互衔接的研究问题。
 
 \section{方法（Method）}
 \subsection{任务定义与总体框架}
@@ -167,7 +174,7 @@ VOLT-KD 在约十万参数的部署规模下同时改善了多标签排序与分
 近期文献比较进一步体现了 VOLT-KD 的精度与模型规模权衡（表\ref{tab:recent}和表\ref{tab:resource_refs}）。VOLT-KD 的宏平均 ROC-AUC、PR-AUC/AP 和 F1 均高于 Mert 等报告的 ResNet18、双向 Mamba、xLSTM 和 CWT-ViT-KAN 结果。更广泛的参照呈现不同优势：CNN--FFT 的宏平均 F1 为 0.770，DBA-ASFNet 以约 0.030 百万参数取得 AUC 0.9166，Chimera 和微调 ECGFounder 的 AUC 为 0.930，异构 stacking 达到 0.936。VOLT-KD 以单个 100 Hz 紧凑学生实现接近部分高容量或高采样率方案的排序性能，将丰富监督的使用集中于训练阶段。各文献的输入、预训练资源和评价协议不同，这一比较确定了本文方法的资源与性能位置；组件贡献由本地受控实验检验。
 \begin{table}[htbp]
 \centering\footnotesize
-\caption{2025--2026 年所选结构建模与轻量融合方法在 PTB-XL 五诊断大类任务上的文献结果。除本文外均为原作者报告值；参数单位为百万（M）。}\label{tab:recent}
+\caption{2025--2026 年方法在 PTB-XL 五诊断大类任务上的文献结果。来源为 Cetintas（2026）\cite{cetintas2026}、Mert 等（2026，预印本）\cite{mert2026}和 Feng 等（2025）\cite{feng2025}；除 VOLT-KD 外均为原作者报告值，参数单位为百万（M）。}\label{tab:recent}
 \begin{tabularx}{\linewidth}{Yc p{1.65cm} rrrr}
 \toprule
 方法与来源 & 年份 & 输入 & 参数 & \shortstack{宏平均\\ROC-AUC} & \shortstack{PR-AUC\\/AP} & \shortstack{宏平均\\F1} \\
@@ -507,10 +514,12 @@ BiMamba & 214,077 & 292.7 & 1.66 & 1,788 & 6.6 & -- \\
 \section*{数据可用性}
 PTB-XL 1.0.3 可通过 PhysioNet 获取：\url{https://physionet.org/content/ptb-xl/1.0.3/}。本文使用的逐种子结果、统计汇总与配置记录由研究项目保存。
 
+\begingroup
+\setlength{\bibsep}{3pt}
 \begin{thebibliography}{99}
 \bibitem{wagner2020} Wagner P, Strodthoff N, Bousseljot RD, et al. PTB-XL, a large publicly available electrocardiography dataset. \emph{Scientific Data}. 2020;7:154. \url{https://doi.org/10.1038/s41597-020-0495-6}.
 
-\bibitem{cetintas2026} Cetintas D. MSCA-Mamba: A Compact Multi-Scale Mamba Network for Multi-Label ECG Classification. \emph{Diagnostics}. 2026;16(19):3135. \url{https://doi.org/10.3390/diagnostics16193135}.
+\bibitem{cetintas2026} Cetintas D. MSCA-Mamba: A Compact Multi-Scale Mamba Network for Multi-Label ECG Classification. \emph{Diagnostics}. 2026;16(19):3135. Published 26 September 2026. \url{https://doi.org/10.3390/diagnostics16193135}.
 
 \bibitem{behrouz2024} Behrouz A, Santacatterina M, Zabih R. Chimera: Effectively Modeling Multivariate Time Series with 2-Dimensional State Space Models. \emph{Advances in Neural Information Processing Systems}. 2024;37:119886--119918. \url{https://proceedings.neurips.cc/paper_files/paper/2024/hash/d8e80772c27beff4ae1676fb147bbf26-Abstract-Conference.html}.
 
@@ -538,7 +547,7 @@ PTB-XL 1.0.3 可通过 PhysioNet 获取：\url{https://physionet.org/content/ptb
 
 \bibitem{vaid2023} Vaid A, Jiang J, Sawant A, et al. A foundational vision transformer improves diagnostic performance for electrocardiograms. \emph{npj Digital Medicine}. 2023;6:108. \url{https://doi.org/10.1038/s41746-023-00840-9}.
 
-\bibitem{mert2026} Mert YE, Akdo\u{g}an E, \"{U}vet H. Multi-Label 12-Lead ECG Classification on the PTB-XL Dataset: A Comparative Evaluation of Deep Learning Architectures and Heterogeneous Ensemble Approaches. \emph{arXiv preprint}. 2026;2609.12803v1. \url{https://arxiv.org/abs/2609.12803}.
+\bibitem{mert2026} Mert YE, Akdo\u{g}an E, \"{U}vet H. Multi-Label 12-Lead ECG Classification on the PTB-XL Dataset: A Comparative Evaluation of Deep Learning Architectures and Heterogeneous Ensemble Approaches. \emph{arXiv preprint}. 2026;arXiv:2609.12803. Posted 11 September 2026. \url{https://arxiv.org/abs/2609.12803}.
 
 \bibitem{howard2017} Howard AG, Zhu M, Chen B, et al. MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications. \emph{arXiv}. 2017;1704.04861. \url{https://arxiv.org/abs/1704.04861}.
 
@@ -547,7 +556,27 @@ PTB-XL 1.0.3 可通过 PhysioNet 获取：\url{https://physionet.org/content/ptb
 \bibitem{hinton2015} Hinton G, Vinyals O, Dean J. Distilling the Knowledge in a Neural Network. \emph{arXiv}. 2015;1503.02531. \url{https://arxiv.org/abs/1503.02531}.
 
 \bibitem{loshchilov2019} Loshchilov I, Hutter F. Decoupled Weight Decay Regularization. \emph{International Conference on Learning Representations}. 2019. \url{https://openreview.net/forum?id=Bkg6RiCqY7}.
+\bibitem{jiang2025} Jiang H, Mutahira H, Wei S, Muhammad MS. ECG-Mamba: Cardiac Abnormality Classification With Non-Uniform-Mix Augmentation on 12-Lead ECGs. \emph{IEEE Journal of Translational Engineering in Health and Medicine}. 2025;13:461--470. \url{https://doi.org/10.1109/JTEHM.2025.3613609}.
+
+\bibitem{luomar2026} Luo K, He H, Chen Y, et al. MAR-GCNet: Multi-label abnormal detection of electrocardiograms by combining multiscale features and graph convolutional networks. \emph{Biomedical Signal Processing and Control}. 2026;119:109841. \url{https://doi.org/10.1016/j.bspc.2026.109841}.
+
+\bibitem{weimann2025} Weimann K, Conrad TOF. Self-supervised pre-training with joint-embedding predictive architecture boosts ECG classification performance. \emph{Computers in Biology and Medicine}. 2025;196:110809. \url{https://doi.org/10.1016/j.compbiomed.2025.110809}.
+
+\bibitem{lin2026} Lin S, Li Z, Wu Q, Chen Y, Yang Y, Zhao H. A self-supervised electrocardiogram foundation model for empowering cardiovascular disease prediction and genetic factor discovery. \emph{Nature Communications}. 2026;17:5771. \url{https://doi.org/10.1038/s41467-026-72436-2}.
+
+\bibitem{khattak2026} Khattak GR, Patlatzoglou K, Barker J, et al. Data distribution impacts the performance and generalisability of contrastive learning-based foundation models of electrocardiograms. \emph{PLOS Digital Health}. 2026;5(9):e0001623. \url{https://doi.org/10.1371/journal.pdig.0001623}.
+
+\bibitem{beigzadeh2026} Beigzadeh N, Fathi A. HMT-KD: Lightweight deep learning model for ECG analysis using hierarchical multi-teacher knowledge distillation framework. \emph{Applied Soft Computing}. 2026;196:115038. \url{https://doi.org/10.1016/j.asoc.2026.115038}.
+
+\bibitem{qian2026} Qian C, Sun Z, Wang C, Tian E, Hu X. Self-knowledge distillation from attention-enhanced multi-branch residual network for 12-lead electrocardiogram arrhythmia classification. \emph{Digital Signal Processing}. 2026;176:106043. \url{https://doi.org/10.1016/j.dsp.2026.106043}.
+
+\bibitem{yisimitila2025} Yisimitila T, Wang C, Hou M, et al. Bridging clinical knowledge and AI: an interpretable transformer framework for ECG diagnosis. \emph{npj Digital Medicine}. 2025;9:41. Published online 19 December 2025. \url{https://doi.org/10.1038/s41746-025-02215-8}.
+
+\bibitem{nguyen2025} Nguyen HD, Pham TT, Le N, Nguyen V. TolerantECG: A Foundation Model for Imperfect Electrocardiogram. \emph{Proceedings of the 33rd ACM International Conference on Multimedia}. 2025;8097--8105. \url{https://doi.org/10.1145/3746027.3755287}.
+
+\bibitem{su2026} Su H, Wang S, Wang H, Qiu K. An Edge--Cloud Collaborative ECG-Assisted Diagnostic System Leveraging Cross-Lead Knowledge Distillation and Large Language Models. \emph{Sensors}. 2026;26(12):3753. \url{https://doi.org/10.3390/s26123753}.
 \end{thebibliography}
+\endgroup
 
 
 \clearpage\appendix

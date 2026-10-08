@@ -1,0 +1,24 @@
+{
+  "language": "research_manuscript_zh_v4",
+  "pages": 33,
+  "references": 30,
+  "refs_2025": 8,
+  "refs_2026": 10,
+  "all_entries_cited": true,
+  "undefined_citations": 0,
+  "tables_unchanged": 21,
+  "equations_unchanged": true,
+  "figures_unchanged": 22,
+  "layout_errors": [],
+  "margin_issues": [],
+  "rendered_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    8,
+    22,
+    23
+  ]
+}

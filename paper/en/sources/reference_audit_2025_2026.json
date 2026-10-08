@@ -1,0 +1,1562 @@
+{
+  "checked_on": "2026-10-08",
+  "reference_count_before": 20,
+  "reference_count_after": 30,
+  "new_2025": 4,
+  "new_2026": 6,
+  "existing_2026": [
+    "cetintas2026",
+    "malik2026",
+    "nolin2026",
+    "mert2026"
+  ],
+  "table3_sources": [
+    {
+      "key": "cetintas2026",
+      "year": 2026,
+      "date": "2026-09-26",
+      "doi": "10.3390/diagnostics16193135",
+      "models": [
+        "MSCA-Mamba"
+      ]
+    },
+    {
+      "key": "mert2026",
+      "year": 2026,
+      "date": "2026-09-11",
+      "status": "arXiv preprint",
+      "url": "https://arxiv.org/abs/2609.12803",
+      "models": [
+        "1D-ResNet18",
+        "Bidirectional Mamba",
+        "xLSTM",
+        "CWT-ViT-KAN"
+      ]
+    },
+    {
+      "key": "feng2025",
+      "year": 2025,
+      "doi": "10.3390/bioengineering12091007",
+      "models": [
+        "MS-LTCAF"
+      ]
+    }
+  ],
+  "new_references": [
+    {
+      "key": "jiang2025",
+      "doi": "10.1109/JTEHM.2025.3613609",
+      "topic": "Compact architecture",
+      "supported_summary": "Vision-Mamba adaptation and Non-Uniform-Mix augmentation; no new performance comparison asserted.",
+      "primary_source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12599890/",
+      "metadata_source": "https://api.crossref.org/works/10.1109%2FJTEHM.2025.3613609",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2025
+            ]
+          ]
+        },
+        "DOI": "10.1109/jtehm.2025.3613609",
+        "type": "journal-article",
+        "page": "461-470",
+        "title": [
+          "ECG-Mamba: Cardiac Abnormality Classification With Non-Uniform-Mix Augmentation on 12-Lead ECGs"
+        ],
+        "volume": "13",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0002-4933-3231",
+            "authenticated-orcid": false,
+            "given": "Huawei",
+            "family": "Jiang",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "Department of Computer Science and Engineering, Sungkyunkwan University, Suwon, South Korea"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-4621-4883",
+            "authenticated-orcid": false,
+            "given": "Husna",
+            "family": "Mutahira",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Department of Computer Science and Engineering, Sogang University, Seoul, South Korea"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-9283-9804",
+            "authenticated-orcid": false,
+            "given": "Shibo",
+            "family": "Wei",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Department of Biomedical Science and Engineering, Gwangju Institute of Science and Technology, Gwangju, South Korea"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-3036-4660",
+            "authenticated-orcid": false,
+            "given": "Mannan Saeed",
+            "family": "Muhammad",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "School of Electronic Engineering and Computer Science, Queen Mary University of London, London, U.K."
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "IEEE Journal of Translational Engineering in Health and Medicine"
+        ],
+        "URL": "https://doi.org/10.1109/jtehm.2025.3613609",
+        "published": {
+          "date-parts": [
+            [
+              2025
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "key": "luomar2026",
+      "doi": "10.1016/j.bspc.2026.109841",
+      "topic": "Label dependencies",
+      "supported_summary": "Multiscale attention and GCN label graphs model co-occurring abnormalities.",
+      "primary_source": "https://www.sciencedirect.com/science/article/pii/S1746809426003952",
+      "metadata_source": "https://api.crossref.org/works/10.1016%2Fj.bspc.2026.109841",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "DOI": "10.1016/j.bspc.2026.109841",
+        "type": "journal-article",
+        "page": "109841",
+        "title": [
+          "MAR-GCNet: Multi-label abnormal detection of electrocardiograms by combining multiscale features and graph convolutional networks"
+        ],
+        "volume": "119",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0003-2317-6714",
+            "authenticated-orcid": false,
+            "given": "Kan",
+            "family": "Luo",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Haixin",
+            "family": "He",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Yu",
+            "family": "Chen",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Lu",
+            "family": "You",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Jiajia",
+            "family": "Yang",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Dengke",
+            "family": "Hong",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Jianxing",
+            "family": "Li",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "given": "Chitin",
+            "family": "Hon",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Biomedical Signal Processing and Control"
+        ],
+        "URL": "https://doi.org/10.1016/j.bspc.2026.109841",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "article-number": "109841"
+      }
+    },
+    {
+      "key": "weimann2025",
+      "doi": "10.1016/j.compbiomed.2025.110809",
+      "topic": "Self-supervised pretraining",
+      "supported_summary": "Predicts latent features rather than input waveforms; ten public pretraining datasets.",
+      "primary_source": "https://www.sciencedirect.com/science/article/abs/pii/S0010482525011606",
+      "metadata_source": "https://api.crossref.org/works/10.1016%2Fj.compbiomed.2025.110809",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2025,
+              9
+            ]
+          ]
+        },
+        "DOI": "10.1016/j.compbiomed.2025.110809",
+        "type": "journal-article",
+        "page": "110809",
+        "title": [
+          "Self-supervised pre-training with joint-embedding predictive architecture boosts ECG classification performance"
+        ],
+        "volume": "196",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0002-1525-8798",
+            "authenticated-orcid": false,
+            "given": "Kuba",
+            "family": "Weimann",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-5590-5726",
+            "authenticated-orcid": false,
+            "given": "Tim O.F.",
+            "family": "Conrad",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Computers in Biology and Medicine"
+        ],
+        "URL": "https://doi.org/10.1016/j.compbiomed.2025.110809",
+        "published": {
+          "date-parts": [
+            [
+              2025,
+              9
+            ]
+          ]
+        },
+        "article-number": "110809"
+      }
+    },
+    {
+      "key": "lin2026",
+      "doi": "10.1038/s41467-026-72436-2",
+      "topic": "Foundation models",
+      "supported_summary": "Contextual contrastive, masked and multi-segment objectives; cardiovascular prediction and genetic association.",
+      "primary_source": "https://www.nature.com/articles/s41467-026-72436-2",
+      "metadata_source": "https://api.crossref.org/works/10.1038%2Fs41467-026-72436-2",
+      "metadata": {
+        "issue": "1",
+        "DOI": "10.1038/s41467-026-72436-2",
+        "type": "journal-article",
+        "title": [
+          "A self-supervised electrocardiogram foundation model for empowering cardiovascular disease prediction and genetic factor discovery"
+        ],
+        "volume": "17",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0002-5677-2128",
+            "authenticated-orcid": false,
+            "given": "Siying",
+            "family": "Lin",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0007-8205-0958",
+            "authenticated-orcid": false,
+            "given": "Zhaoqi",
+            "family": "Li",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0009-0001-4185-4382",
+            "authenticated-orcid": false,
+            "given": "Qifan",
+            "family": "Wu",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Yifeng",
+            "family": "Chen",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-6782-2813",
+            "authenticated-orcid": false,
+            "given": "Yuedong",
+            "family": "Yang",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-9134-536X",
+            "authenticated-orcid": false,
+            "given": "Huiying",
+            "family": "Zhao",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "published-online": {
+          "date-parts": [
+            [
+              2026,
+              4,
+              27
+            ]
+          ]
+        },
+        "container-title": [
+          "Nature Communications"
+        ],
+        "URL": "https://doi.org/10.1038/s41467-026-72436-2",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              4,
+              27
+            ]
+          ]
+        },
+        "article-number": "5771"
+      }
+    },
+    {
+      "key": "khattak2026",
+      "doi": "10.1371/journal.pdig.0001623",
+      "topic": "Pretraining distribution",
+      "supported_summary": "Pretraining composition affects performance and generalizability.",
+      "primary_source": "https://journals.plos.org/digitalhealth/article?id=10.1371/journal.pdig.0001623",
+      "metadata_source": "https://api.crossref.org/works/10.1371%2Fjournal.pdig.0001623",
+      "metadata": {
+        "issue": "9",
+        "DOI": "10.1371/journal.pdig.0001623",
+        "type": "journal-article",
+        "page": "e0001623",
+        "title": [
+          "Data distribution impacts the performance and generalisability of contrastive learning-based foundation models of electrocardiograms"
+        ],
+        "volume": "5",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0000-0003-0674-2833",
+            "authenticated-orcid": true,
+            "given": "Gul Rukh",
+            "family": "Khattak",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Konstantinos",
+            "family": "Patlatzoglou",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Joseph",
+            "family": "Barker",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Libor",
+            "family": "Pastika",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Boroumand",
+            "family": "Zeidaabadi",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Aidan R.",
+            "family": "Birdi",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Jiayu",
+            "family": "Huo",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-4419-6693",
+            "authenticated-orcid": true,
+            "given": "Ahmed",
+            "family": "El-Medany",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              },
+              {
+                "name": "Chelsea and Westminster Hospital NHS Foundation Trust",
+                "place": [
+                  "London, United Kingdom"
+                ],
+                "department": [
+                  "Department of Cardiology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-4825-4002",
+            "authenticated-orcid": true,
+            "given": "Hesham",
+            "family": "Aggour",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Yixiu",
+            "family": "Liang",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              },
+              {
+                "name": "Zhongshan Hospital of Fudan University, Shanghai Institute of Cardiovascular Diseases, National Clinical Research Centre for Interventional Medicine",
+                "place": [
+                  "Shanghai, China"
+                ],
+                "department": [
+                  "Department of Cardiology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Antonio H.",
+            "family": "Ribeiro",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Uppsala University",
+                "place": [
+                  "Uppsala, Sweden"
+                ],
+                "department": [
+                  "Department of Information Technology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Jeffrey",
+            "family": "Annis",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Vanderbilt Institute for Clinical and Translational Research, Vanderbilt University Medical Center",
+                "place": [
+                  "Nashville, Tennessee, United States of America"
+                ]
+              },
+              {
+                "name": "Vanderbilt University Medical Center",
+                "place": [
+                  "Nashville, Tennessee, United States of America"
+                ],
+                "department": [
+                  "Center for Digital Genomic Medicine, Department of Medicine"
+                ]
+              },
+              {
+                "name": "Vanderbilt University Medical Center",
+                "place": [
+                  "Nashville, Tennessee, United States of America"
+                ],
+                "department": [
+                  "Division of Cardiovascular Medicine"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Antonio Luiz Pinho",
+            "family": "Ribeiro",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Faculdade de Medicina, and Telehealth Center and Cardiology Service, Hospital das Clínicas, Universidade Federal de Minas Gerais",
+                "place": [
+                  "Belo Horizonte, Brazil"
+                ],
+                "department": [
+                  "Department of Internal Medicine"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Junbo",
+            "family": "Ge",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Zhongshan Hospital of Fudan University, Shanghai Institute of Cardiovascular Diseases, National Clinical Research Centre for Interventional Medicine",
+                "place": [
+                  "Shanghai, China"
+                ],
+                "department": [
+                  "Department of Cardiology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Daniel B.",
+            "family": "Kramer",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Richard A. and Susan F. Smith Center for Outcomes Research in Cardiology, Beth Israel Deaconess Medical Center, Harvard Medical School",
+                "place": [
+                  "Boston, Massachusetts, United States of America"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Jonathan W.",
+            "family": "Waks",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Harvard-Thorndike Electrophysiology Institute, Beth Israel Deaconess Medical Center, Harvard Medical School",
+                "place": [
+                  "Boston, Massachusetts, United States of America"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Evan",
+            "family": "Brittain",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Vanderbilt Institute for Clinical and Translational Research, Vanderbilt University Medical Center",
+                "place": [
+                  "Nashville, Tennessee, United States of America"
+                ]
+              },
+              {
+                "name": "Vanderbilt University Medical Center",
+                "place": [
+                  "Nashville, Tennessee, United States of America"
+                ],
+                "department": [
+                  "Center for Digital Genomic Medicine, Department of Medicine"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Nicholas",
+            "family": "Peters",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-8681-4368",
+            "authenticated-orcid": true,
+            "given": "Fu Siong",
+            "family": "Ng",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              },
+              {
+                "name": "Imperial College Healthcare NHS Trust",
+                "place": [
+                  "London, United Kingdom"
+                ],
+                "department": [
+                  "Department of Cardiology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Arunashis",
+            "family": "Sau",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "National Heart and Lung Institute, Imperial College London",
+                "place": [
+                  "London, United Kingdom"
+                ]
+              },
+              {
+                "name": "Imperial College Healthcare NHS Trust",
+                "place": [
+                  "London, United Kingdom"
+                ],
+                "department": [
+                  "Department of Cardiology"
+                ]
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "published-online": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              2
+            ]
+          ]
+        },
+        "container-title": [
+          "PLOS Digital Health"
+        ],
+        "URL": "https://doi.org/10.1371/journal.pdig.0001623",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              9,
+              2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "key": "beigzadeh2026",
+      "doi": "10.1016/j.asoc.2026.115038",
+      "topic": "Multi-teacher KD",
+      "supported_summary": "Teacher assistant, response KD and feature KD; no claim that this work ignores amplitude without full-text evidence.",
+      "primary_source": "https://www.sciencedirect.com/science/article/pii/S1568494626004862",
+      "metadata_source": "https://api.crossref.org/works/10.1016%2Fj.asoc.2026.115038",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "DOI": "10.1016/j.asoc.2026.115038",
+        "type": "journal-article",
+        "page": "115038",
+        "title": [
+          "HMT-KD: Lightweight deep learning model for ECG analysis using hierarchical multi-teacher knowledge distillation framework"
+        ],
+        "volume": "196",
+        "author": [
+          {
+            "given": "Nasim",
+            "family": "Beigzadeh",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Abdolhossein",
+            "family": "Fathi",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Applied Soft Computing"
+        ],
+        "URL": "https://doi.org/10.1016/j.asoc.2026.115038",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "article-number": "115038"
+      }
+    },
+    {
+      "key": "qian2026",
+      "doi": "10.1016/j.dsp.2026.106043",
+      "topic": "Self-distillation",
+      "supported_summary": "Auxiliary self-teacher combines features from residual branches and spatial/channel attention.",
+      "primary_source": "https://www.sciencedirect.com/science/article/pii/S1051200426001624",
+      "metadata_source": "https://api.crossref.org/works/10.1016%2Fj.dsp.2026.106043",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "DOI": "10.1016/j.dsp.2026.106043",
+        "type": "journal-article",
+        "page": "106043",
+        "title": [
+          "Self-knowledge distillation from attention-enhanced multi-branch residual network for 12-lead electrocardiogram arrhythmia classification"
+        ],
+        "volume": "176",
+        "author": [
+          {
+            "given": "Chenlong",
+            "family": "Qian",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-6911-6437",
+            "authenticated-orcid": false,
+            "given": "Zhanquan",
+            "family": "Sun",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Chaoli",
+            "family": "Wang",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Engang",
+            "family": "Tian",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Xinping",
+            "family": "Hu",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "container-title": [
+          "Digital Signal Processing"
+        ],
+        "URL": "https://doi.org/10.1016/j.dsp.2026.106043",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              6
+            ]
+          ]
+        },
+        "article-number": "106043"
+      }
+    },
+    {
+      "key": "yisimitila2025",
+      "doi": "10.1038/s41746-025-02215-8",
+      "topic": "Clinical supervision",
+      "supported_summary": "Physician-defined features enrich a teacher; momentum distillation guides student. Publication date follows Crossref and publisher-indexed record (2025-12-19); publisher volume is 9, article 41.",
+      "primary_source": "https://www.nature.com/articles/s41746-025-02215-8",
+      "metadata_source": "https://api.crossref.org/works/10.1038%2Fs41746-025-02215-8",
+      "metadata": {
+        "issue": "1",
+        "DOI": "10.1038/s41746-025-02215-8",
+        "type": "journal-article",
+        "title": [
+          "Bridging clinical knowledge and AI: an interpretable transformer framework for ECG diagnosis"
+        ],
+        "volume": "9",
+        "author": [
+          {
+            "given": "Tuersunayi",
+            "family": "Yisimitila",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Chao",
+            "family": "Wang",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Ming",
+            "family": "Hou",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Mailidan",
+            "family": "Maimaitiniyazi",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Zulipiya",
+            "family": "Aili",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Tianhui",
+            "family": "Liu",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Haolun",
+            "family": "Tan",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Narmatha",
+            "family": "Chellamani",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Manimurugan",
+            "family": "Shanmuganathan",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Mingxin",
+            "family": "Liu",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Muyesai",
+            "family": "Nijiati",
+            "sequence": "additional",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "published-online": {
+          "date-parts": [
+            [
+              2025,
+              12,
+              19
+            ]
+          ]
+        },
+        "container-title": [
+          "npj Digital Medicine"
+        ],
+        "URL": "https://doi.org/10.1038/s41746-025-02215-8",
+        "published": {
+          "date-parts": [
+            [
+              2025,
+              12,
+              19
+            ]
+          ]
+        },
+        "article-number": "41"
+      }
+    },
+    {
+      "key": "nguyen2025",
+      "doi": "10.1145/3746027.3755287",
+      "topic": "Imperfect ECG",
+      "supported_summary": "ECG-text contrastive and self-supervised learning on corrupted or lead-missing signals; final ACM MM proceedings replace preprint.",
+      "primary_source": "https://arxiv.org/abs/2507.09887",
+      "metadata_source": "https://api.crossref.org/works/10.1145%2F3746027.3755287",
+      "metadata": {
+        "published-print": {
+          "date-parts": [
+            [
+              2025,
+              10,
+              27
+            ]
+          ]
+        },
+        "DOI": "10.1145/3746027.3755287",
+        "type": "proceedings-article",
+        "page": "8097-8105",
+        "title": [
+          "TolerantECG: A Foundation Model for Imperfect Electrocardiogram"
+        ],
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0009-0007-0242-4789",
+            "authenticated-orcid": false,
+            "given": "Huynh Dang",
+            "family": "Nguyen",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "AI Center, FPT Software, Hanoi, Vietnam"
+              }
+            ],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-3170-4142",
+            "authenticated-orcid": false,
+            "given": "Trong-Thang",
+            "family": "Pham",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "EECS, University of Arkansas, Fayetteville, Arkansas, USA"
+              }
+            ],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0003-2571-0511",
+            "authenticated-orcid": false,
+            "given": "Ngan",
+            "family": "Le",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "EECS, University of Arkansas, Fayetteville, Arkansas, USA"
+              }
+            ],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-6920-275X",
+            "authenticated-orcid": false,
+            "given": "Van",
+            "family": "Nguyen",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "AI Center, FPT Software, Hanoi, Vietnam"
+              }
+            ],
+            "role": [
+              {
+                "role": "author",
+                "vocabulary": "crossref"
+              }
+            ]
+          }
+        ],
+        "published-online": {
+          "date-parts": [
+            [
+              2025,
+              10,
+              27
+            ]
+          ]
+        },
+        "container-title": [
+          "Proceedings of the 33rd ACM International Conference on Multimedia"
+        ],
+        "URL": "https://doi.org/10.1145/3746027.3755287",
+        "published": {
+          "date-parts": [
+            [
+              2025,
+              10,
+              27
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "key": "su2026",
+      "doi": "10.3390/s26123753",
+      "topic": "Cross-lead KD",
+      "supported_summary": "Twelve-lead teacher to single-lead student for normal/abnormal screening; distinguish binary task from five-superclass evaluation.",
+      "primary_source": "https://www.mdpi.com/1424-8220/26/12/3753",
+      "metadata_source": "https://api.crossref.org/works/10.3390%2Fs26123753",
+      "metadata": {
+        "issue": "12",
+        "DOI": "10.3390/s26123753",
+        "type": "journal-article",
+        "page": "3753",
+        "title": [
+          "An Edge–Cloud Collaborative ECG-Assisted Diagnostic System Leveraging Cross-Lead Knowledge Distillation and Large Language Models"
+        ],
+        "volume": "26",
+        "author": [
+          {
+            "ORCID": "https://orcid.org/0009-0001-8988-3465",
+            "authenticated-orcid": false,
+            "given": "Haohan",
+            "family": "Su",
+            "sequence": "first",
+            "affiliation": [
+              {
+                "name": "Information Engineering College, Capital Normal University, Beijing 100048, China"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "given": "Shuai",
+            "family": "Wang",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Information Engineering College, Capital Normal University, Beijing 100048, China"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0001-8363-361X",
+            "authenticated-orcid": false,
+            "given": "Hongxiao",
+            "family": "Wang",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Information Engineering College, Capital Normal University, Beijing 100048, China"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          },
+          {
+            "ORCID": "https://orcid.org/0000-0002-5851-777X",
+            "authenticated-orcid": false,
+            "given": "Keni",
+            "family": "Qiu",
+            "sequence": "additional",
+            "affiliation": [
+              {
+                "name": "Information Engineering College, Capital Normal University, Beijing 100048, China"
+              }
+            ],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "published-online": {
+          "date-parts": [
+            [
+              2026,
+              6,
+              12
+            ]
+          ]
+        },
+        "container-title": [
+          "Sensors"
+        ],
+        "URL": "https://doi.org/10.3390/s26123753",
+        "published": {
+          "date-parts": [
+            [
+              2026,
+              6,
+              12
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "access_note": "Claims use publisher/author abstracts and accessible full-text sections. Some direct publisher opens returned 403/429/redirect; indexed publisher content and Crossref metadata were used. No paywall was bypassed, and no unverified new benchmark score was imported."
+}

@@ -34,9 +34,13 @@ PR-AUC and AP retain source-specific metric names in literature comparisons. Tra
 
 - All 345 Chinese-bearing source lines were translated.
 - All 21 table numerical-cell sequences match the Chinese source.
-- Displayed equations and bibliography are unchanged.
+- Displayed equations are unchanged. The initial translation preserved the bibliography; the 8 October literature revision expands both language editions to 30 matching entries.
 - All 22 figures are present and contain no Chinese labels.
-- Final PDF: 31 pages; no overfull boxes, missing glyphs, or unresolved references.
+- Current PDF: 33 pages; no overfull boxes, missing glyphs, or unresolved references.
 - All pages were rendered and inspected; vector curves and charts were retained.
 
-Translation preserves the main/SI allocation. No new experiment, reference, or scientific result was introduced. Cross-language word counts are not treated as a compression statistic. The follow-up English polish focused on wording and typesetting rather than relocating scientific evidence.
+Translation preserves the main/SI allocation. The initial translation introduced no new experiment, reference, or scientific result. The subsequent literature revision adds ten verified references and expands Related Work; experiments and results are unchanged. Cross-language word counts are not treated as a compression statistic. The follow-up English polish focused on wording and typesetting rather than relocating scientific evidence.
+
+## Literature revision — 8 October 2026
+
+Four Related Work subsections now integrate compact modeling, foundation models, diagnostic supervision, amplitude information and lead availability. The English text was polished after expansion. See LITERATURE_UPDATE.md for the 30-entry reference audit and software attribution.
