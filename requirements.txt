@@ -1,0 +1,9 @@
+# Install the appropriate CUDA PyTorch build separately.
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+requests
+pyarrow
+mambapy

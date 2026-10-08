@@ -1,0 +1,42 @@
+[
+  [
+    "teachers have one evaluation set",
+    "teacher results represent one evaluation per configuration"
+  ],
+  [
+    "at fixed student size",
+    "without changing student size"
+  ],
+  [
+    "input basis for knowledge learning",
+    "signal representation for knowledge learning"
+  ],
+  [
+    "diagnostic information availability",
+    "the availability of diagnostic information"
+  ],
+  [
+    "shorter sequences reduce computation",
+    "sequence downsampling reduces computation"
+  ],
+  [
+    "These comparisons characterize resource and performance positioning",
+    "These comparisons characterize the trade-off between resources and performance"
+  ],
+  [
+    "The teacher's benefit was clearer in F1.",
+    "Teacher supervision produced a clearer improvement in macro F1."
+  ],
+  [
+    "The in-sample scheme achieved a slightly higher score.",
+    "The in-sample scheme achieved a slightly higher macro-AUC score."
+  ],
+  [
+    "VOLT-KD's gains extended to probabilistic prediction error",
+    "VOLT-KD also reduced error in the predicted probabilities"
+  ],
+  [
+    "These findings provide a connected design rationale linking diagnostic information, training supervision, and deployment resources.",
+    "These findings support designing lightweight ECG classifiers around preserved diagnostic information, targeted training supervision, and compact inference."
+  ]
+]

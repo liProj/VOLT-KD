@@ -1,0 +1,143 @@
+{
+  "translated_chinese_lines": 345,
+  "tables_numeric_cells_unchanged": 21,
+  "figures": 22,
+  "equations_unchanged": true,
+  "bibliography_unchanged": true,
+  "all_english": true,
+  "layout_errors": 0,
+  "figure_checks": [
+    {
+      "figure": "f02_architecture.pdf",
+      "source_drawings": 39,
+      "english_drawings": 39,
+      "no_chinese": true
+    },
+    {
+      "figure": "f03_voltage.pdf",
+      "source_drawings": 266,
+      "english_drawings": 266,
+      "no_chinese": true
+    },
+    {
+      "figure": "f11_ablation_ladder.pdf",
+      "source_drawings": 74,
+      "english_drawings": 74,
+      "no_chinese": true
+    },
+    {
+      "figure": "f24_teacher_student.pdf",
+      "source_drawings": 74,
+      "english_drawings": 74,
+      "no_chinese": true
+    },
+    {
+      "figure": "f07_per_class.pdf",
+      "source_drawings": 202,
+      "english_drawings": 202,
+      "no_chinese": true
+    },
+    {
+      "figure": "f16_subclass_sensitivity.pdf",
+      "source_drawings": 102,
+      "english_drawings": 102,
+      "no_chinese": true
+    },
+    {
+      "figure": "f12_ablation_leave_one_out.pdf",
+      "source_drawings": 167,
+      "english_drawings": 167,
+      "no_chinese": true
+    },
+    {
+      "figure": "f13_gain_probe.pdf",
+      "source_drawings": 183,
+      "english_drawings": 183,
+      "no_chinese": true
+    },
+    {
+      "figure": "f17_subgroups.pdf",
+      "source_drawings": 170,
+      "english_drawings": 170,
+      "no_chinese": true
+    },
+    {
+      "figure": "f19_calibration.pdf",
+      "source_drawings": 283,
+      "english_drawings": 283,
+      "no_chinese": true
+    },
+    {
+      "figure": "f20_decision_curves.pdf",
+      "source_drawings": 145,
+      "english_drawings": 145,
+      "no_chinese": true
+    },
+    {
+      "figure": "f18_noise_robustness.pdf",
+      "source_drawings": 110,
+      "english_drawings": 110,
+      "no_chinese": true
+    },
+    {
+      "figure": "f15_efficiency.pdf",
+      "source_drawings": 129,
+      "english_drawings": 129,
+      "no_chinese": true
+    },
+    {
+      "figure": "f01_dataset.pdf",
+      "source_drawings": 89,
+      "english_drawings": 89,
+      "no_chinese": true
+    },
+    {
+      "figure": "f04_training_curves.pdf",
+      "source_drawings": 65,
+      "english_drawings": 65,
+      "no_chinese": true
+    },
+    {
+      "figure": "f08_roc.pdf",
+      "source_drawings": 171,
+      "english_drawings": 171,
+      "no_chinese": true
+    },
+    {
+      "figure": "f09_pr.pdf",
+      "source_drawings": 156,
+      "english_drawings": 156,
+      "no_chinese": true
+    },
+    {
+      "figure": "f10_confusion.pdf",
+      "source_drawings": 91,
+      "english_drawings": 91,
+      "no_chinese": true
+    },
+    {
+      "figure": "f06_vs_published.pdf",
+      "source_drawings": 246,
+      "english_drawings": 246,
+      "no_chinese": true
+    },
+    {
+      "figure": "f21_reduced_leads.pdf",
+      "source_drawings": 76,
+      "english_drawings": 76,
+      "no_chinese": true
+    },
+    {
+      "figure": "f14_pareto.pdf",
+      "source_drawings": 66,
+      "english_drawings": 66,
+      "no_chinese": true
+    },
+    {
+      "figure": "f23_attribution.pdf",
+      "source_drawings": 246,
+      "english_drawings": 246,
+      "no_chinese": true
+    }
+  ]
+}

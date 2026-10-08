@@ -1,0 +1,863 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs,tabularx,array,float,caption,xcolor}
+\usepackage[section]{placeins}
+\usepackage{longtable}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\graphicspath{{figures/}}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{3pt}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.80}
+\setlength{\textfloatsep}{16pt plus 3pt minus 3pt}
+\setlength{\floatsep}{14pt plus 3pt minus 3pt}
+\setlength{\emergencystretch}{2em}
+\renewcommand{\arraystretch}{1.15}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\title{\textbf{VOLT-KD: Amplitude-Preserving Learning\\for Lightweight Multi-Label ECG Classification}}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+\begin{abstract}
+Lightweight electrocardiogram (ECG) classification requires preserving diagnostic information within a limited computational budget. Per-record, per-lead standardization removes absolute voltage and alters inter-lead amplitude ratios before signals reach the network. We propose VOLT-KD, an amplitude-preserving framework for lightweight multi-label ECG classification. The framework combines millivolt inputs, multiscale depthwise separable convolutions, and short-sequence modeling with diagnostic subclass supervision and cross-fitted foundation-model soft labels. Teachers and auxiliary heads are used only during training; the deployed student contains 107,189 parameters. In five-seed PTB-XL experiments, millivolt inputs increased the same student's macro ROC-AUC from 0.9106 to 0.9277 and hypertrophy ROC-AUC from 0.8285 to 0.9019. A second compact backbone showed consistent improvements. The complete framework achieved macro ROC-AUC $0.9298\pm0.0012$ and macro F1 $0.7542\pm0.0009$, exceeding published MSCA-Mamba means by 0.0300 and 0.0504, respectively. Adding distillation to subclass supervision increased macro F1 by 0.0043 without enlarging the deployed network. Voltage probes, gain responses, and subclass analyses jointly supported the contribution of input amplitude. Subgroup, perturbation, probability-quality, and literature comparisons further characterized the complete framework. Estimated computation was 30.1 MFLOPs, with single-thread CPU inference latency of 32.5 ms on the evaluated platform. These findings connect diagnostic information preservation, compact representations, and training-time knowledge transfer in an empirically grounded design for lightweight ECG classification.
+\end{abstract}
+\noindent\textbf{Keywords:} electrocardiogram; multi-label classification; amplitude preservation; lightweight networks; knowledge distillation
+
+\section{Introduction}
+Twelve-lead multi-label ECG classification identifies normal ECGs, myocardial infarction, ST/T changes, conduction disturbances, and hypertrophy within the same recording\cite{wagner2020}. Unlike binary detection of a single abnormality, this task must handle coexisting diagnoses, class imbalance, and overlapping diagnostic features. Within a ten-second recording, local waveforms encode morphology, interbeat relationships provide temporal information, and lead voltages and their ratios describe spatial distributions. Resource-constrained devices must convert these signals into useful predictions with limited memory and computation. Lightweight design therefore involves both reducing network size and improving the use of diagnostic information available to a compact model. PTB-XL provides patient-disjoint folds and hierarchical diagnostic labels, establishing a common dataset for investigating this problem\cite{wagner2020}.
+
+Existing studies mainly improve classification through feature extraction and information fusion. MSCA-Mamba\cite{cetintas2026}, for example, first standardizes each lead within each recording and then extracts local morphology using multiscale convolutions. Channel recalibration and a state-space module integrate these features before the network outputs multiple diagnostic probabilities. With 121,149 parameters, it achieves macro ROC-AUC 0.8998, demonstrating the feasibility of compact networks for this task. Chimera\cite{behrouz2024} models dynamic temporal and variable dependencies with state-space structures, whereas MS-LTCAF\cite{feng2025} selects informative locations through lead--temporal co-attention. DBA-ASFNet\cite{luo2025} combines depthwise separable residual convolutions, a bidirectional gated recurrent unit (GRU), and demographic information to reduce representation costs. CNN--FFT\cite{malik2026} combines time-domain morphology with frequency-domain features. These approaches offer different solutions for extracting information inside the network. The relationship between amplitude processing before the network and subsequent class-specific gains remains less explicit. When preprocessing maps waveforms to a common scale, does it remove nuisance variation or diagnostic information that the model should retain?
+
+This distinction is directly relevant to hypertrophy recognition, where Sokolow--Lyon and Cornell voltage criteria depend on amplitudes in specific leads\cite{sokolow1949,casale1985,hancock2009}. Per-record, per-lead z-score normalization gives similarly shaped waveforms nearly identical representations despite different absolute amplitudes, while also changing inter-lead amplitude ratios. A network can still exploit morphology and label co-occurrence, but physical voltage no longer enters learning in its original form. Recent DeepECG research also incorporates amplitude handling into foundation-model preprocessing\cite{nolin2026}. We examine how much millivolt-scale preservation benefits a classifier with approximately one hundred thousand parameters, which classes benefit, and whether gains extend across backbones. Controlled comparisons can thus turn preprocessing from a fixed default into a task-informed design decision.
+
+A complementary research direction enriches the knowledge available during training. ECGFounder\cite{li2025} learns diagnostic representations from over ten million recordings, and ECG-FM\cite{mckeen2025} provides an open self-supervised foundation model. MVKT-ECG\cite{qin2023} transfers information from multi-lead teachers to single-lead students through multi-view knowledge transfer. These studies expand the supervision available to small models. However, the relationship among overall teacher performance, class-specific teacher competence, and student input representations warrants targeted evaluation. High aggregate teacher performance does not guarantee equally useful targets for every diagnostic class. PTB-XL also provides twenty-three diagnostic subclasses and higher-rate recordings, offering richer training information than five superclass labels alone. Our second design question concerns how to organize this information for lightweight inference while distinguishing input preservation from additional supervision.
+
+We propose VOLT-KD, an amplitude-preserving framework that integrates physical inputs, compact representations, and training-time knowledge learning into a single classification pipeline. Recordings are converted to millivolts, and only constant lead offsets are removed so that voltage differences enter feature extraction directly. Multiscale depthwise separable convolutions and downsampling extract waveform patterns, while a bidirectional GRU aggregates context over a shortened sequence. Training combines superclass labels, subclass labels, and foundation-model soft labels. Cross-fitting generates each training record's soft targets using a teacher that excluded its fine-tuning fold. Diagnostic subclasses and the higher-rate teacher are restricted to training; deployment retains only the 100 Hz input, student backbone, and five-class prediction head. The framework uses established convolutional, recurrent, and distillation components. Its contribution centers on task-informed amplitude preservation and experimentally testable relationships among input information, supervision, and computational cost.
+
+VOLT-KD has three connected properties that motivate the experimental evaluation. First, information preservation acts at the start of learning. Changing only input processing for the same student increases macro ROC-AUC from 0.9106 to 0.9277 and HYP ROC-AUC from 0.8285 to 0.9019. Second, the compact backbone limits inference cost to 107,189 deployed parameters and an estimated 30.1 MFLOPs. The complete configuration achieves macro ROC-AUC 0.9298 and macro F1 0.7542. Third, fixed-student comparisons identify the contribution of additional supervision, with distillation further improving macro F1 beyond subclass supervision. Evaluation includes recent literature, common-protocol comparisons, diagnostic subclasses, demographic subgroups, probability quality, synthetic perturbations, and inference efficiency. Together, these analyses establish overall performance, identify the sources of gains, and characterize diagnostic coverage and resource requirements.
+
+The main contributions of this study are as follows:
+\begin{enumerate}
+\item We develop an amplitude-preserving learning pipeline that combines millivolt inputs with multiscale temporal representations for compact multi-label ECG classification. Training-free voltage probes, input controls in two backbones, and gain-response experiments link preserved information to model behavior and hypertrophy-related gains.
+\item We organize diagnostic subclasses and cross-fitted teacher probabilities into hierarchical supervision while retaining a single lightweight prediction path at deployment. Additive and removal ablations quantify the dominant input contribution and identify the incremental macro-F1 benefit and class-specific effects of teacher soft labels.
+\item We show that a single student with approximately one hundred thousand parameters achieves strong multi-label classification performance on PTB-XL with low computation and high batch throughput. Subclass, test-subgroup, perturbation, and reduced-lead analyses characterize performance and resource trade-offs under different observation conditions.
+\end{enumerate}
+
+VOLT-KD combines diagnostic information preservation, compact feature extraction, and training-time knowledge learning so that limited inference capacity can use physical voltage and hierarchical supervision.
+\section{Related Work}
+\subsection{Compact ECG Classification Networks}
+Compact networks use convolution, attention, and sequence modules to extract ECG features with limited parameters. MSCA-Mamba combines multiscale convolutions, squeeze-and-excitation attention, and a unidirectional state-space module, using approximately 120,000 parameters for multi-label classification\cite{cetintas2026}. This approach emphasizes feature extraction and aggregation across temporal scales. We adopt multiscale modeling while using depthwise separable convolutions and downsampling to reduce feature-extraction and sequence-processing costs. Physical amplitude is also treated as an explicit input-design factor. Differences in preprocessing and internal computation make MSCA-Mamba a relevant comparator for input controls and efficiency evaluation.
+
+Recent methods extend compact modeling through different information pathways. Chimera models temporal and variable relationships using two-dimensional state-space structures\cite{behrouz2024}, whereas MS-LTCAF jointly weights lead and temporal positions\cite{feng2025}. DBA-ASFNet already combines depthwise separable convolutions, a bidirectional GRU, and demographic information\cite{luo2025}. We use these established components to construct a compact student and examine the combination of amplitude inputs and training supervision. CNN--FFT adds a deterministic frequency-domain branch to complement temporal representations\cite{malik2026}. These approaches indicate that compact classification depends on both computational structure and the information supplied to it. Our controlled input comparisons investigate physical voltage as one such information source.
+
+\subsection{Pretrained Representations and Knowledge Transfer}
+Self-supervised learning extracts transferable representations from large collections of ECG signals. Mehari and Strodthoff investigated label efficiency and noise robustness in twelve-lead self-supervised learning\cite{mehari2022}. HeartBEiT uses image-based ECG pretraining for downstream diagnosis\cite{vaid2023}. ECGFounder applies supervised pretraining to over ten million recordings\cite{li2025}, whereas ECG-FM provides an open self-supervised ECG foundation model\cite{mckeen2025}. These studies establish resources for using diagnostic knowledge learned from historical recordings.
+
+Knowledge transfer makes pretrained models useful for resource-constrained inference by training smaller students. Qin et al.'s MVKT-ECG combines multi-view knowledge transfer and multi-label distillation to transfer multi-lead information to a single-lead student\cite{qin2023}. We focus primarily on lightweight classification with fixed twelve-lead inputs, combining five diagnostic superclasses, twenty-three subclasses, and teacher probabilities as training targets. The teacher receives 500 Hz recordings, whereas the student receives 100 Hz inputs, confining additional supervision to training. Fixed-student comparisons assess how each supervision source affects aggregate and class-specific performance. Mert et al. compared convolutional, state-space, recurrent, time--frequency, and fine-tuned ECGFounder models on the same five-class task, with heterogeneous ensembles improving aggregate scores\cite{mert2026}. Their single-model and ensemble results provide literature references for positioning lightweight single-model inference.
+
+\subsection{Amplitude Processing and Diagnostic Information Preservation}
+ECG amplitude reflects acquisition conditions while also carrying diagnostic information. Recent DeepECG research incorporates amplitude-range handling into preprocessing across data sources and evaluates external performance and foundation-model efficiency\cite{nolin2026}. This work provides a contemporary context for amplitude-preserving preprocessing. We investigate this principle in a classifier with approximately one hundred thousand parameters. Voltage probes characterize input differences, two compact backbones test classification benefits, and teacher--student comparisons reveal class-specific supervision effects. Amplitude handling is therefore evaluated through model behavior and diagnostic performance, rather than treated only as a preprocessing option.
+
+\section{Method}
+\subsection{Task Definition and Framework}
+For a ten-second twelve-lead recording sampled at 100 Hz, the student receives $X\in\mathbb R^{12\times1000}$ and outputs five independent diagnostic probabilities $p\in[0,1]^5$. The binary label vector $y\in\{0,1\}^5$ allows co-occurrence among normal ECG (NORM), myocardial infarction (MI), ST/T changes (STTC), conduction disturbance (CD), and hypertrophy (HYP). Training additionally uses twenty-three diagnostic subclass labels $u\in\{0,1\}^{23}$.
+
+VOLT-KD combines amplitude-preserving preprocessing, a lightweight student backbone, and hierarchical supervision during training (Figure~\ref{fig:framework}). Millivolt inputs preserve waveform voltage, and multiscale convolution with short-sequence modeling extracts compact features. Superclass labels, subclass labels, and ECGFounder teacher probabilities jointly supervise training. At inference, the teacher and auxiliary subclass head are removed, retaining only the student backbone and five-class prediction head.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{f02_architecture.pdf}
+\caption{Amplitude-preserving training and inference. Higher-rate recordings, teacher soft labels, and diagnostic subclasses are used only during training. Inference maps a 100 Hz ECG to five diagnostic superclasses. Complete VOLT-KD uses superclass, subclass, and teacher supervision.}
+\label{fig:framework}
+\end{figure}
+
+\subsection{Preserving Physical Amplitude}
+Amplitude processing distinguishes constant offsets from the voltage carried by a waveform. For lead $\ell$ of a single recording, per-lead standardization is defined as
+\begin{equation}
+ Z_\ell(X)=\frac{X_\ell-\mu_\ell}{s_\ell+\epsilon},
+\end{equation}
+where $\mu_\ell$ and $s_\ell$ are computed from that recording and $\epsilon=10^{-6}$. Neglecting the stabilizing term and assuming $s_\ell>0$, a positive gain $a_\ell$ and constant offset $b_\ell$ satisfy
+\begin{equation}
+ Z_\ell(a_\ell X_\ell+b_\ell)=Z_\ell(X_\ell).
+\end{equation}
+Thus, identically shaped signals with different absolute amplitudes map to the same representation. Standardization aligns input scales while removing the scale itself from subsequent learning.
+
+To retain this information, we convert analog-to-digital converter (ADC) values to millivolts using the stored gain and subtract each lead's temporal median:
+\begin{equation}
+ \widetilde X_\ell(t)=X^{\mathrm{ADC}}_\ell(t)/1000
+ -\operatorname{median}_{\tau}\big(X^{\mathrm{ADC}}_\ell(\tau)/1000\big).
+\end{equation}
+The constant 1000 is the ADC gain of the PTB-XL data used here. This operation removes constant offsets while preserving waveform amplitudes in millivolts. The network then processes voltage differences across leads and recordings. No per-record scale division is applied, and preprocessing is identical during training and inference.
+
+\subsection{Compact Multiscale Temporal Representations}
+ECG structures with different durations require different temporal receptive fields. Three depthwise branches with dilation rates 1, 2, and 4 extract multiscale features, with a shared pointwise projection limiting channel-mixing costs\cite{howard2017}. Each branch uses a kernel of 7. Their summed outputs pass through batch normalization, a sigmoid linear unit (SiLU), pointwise convolution, and batch normalization, followed by a residual connection. For $C$ channels, the weight count is $21C+C^2$, excluding biases and normalization parameters, compared with $21C^2$ for three full-convolution branches. Separating temporal-scale expansion from channel mixing therefore keeps multiscale extraction compact.
+
+The backbone first maps twelve leads to 48 channels using a kernel-7, stride-2 convolution, followed by one multiscale block. A second kernel-5, stride-2 convolution expands the representation to 96 channels and is followed by two multiscale blocks. The two downsampling steps reduce sequence length from 1000 to 250, shortening subsequent temporal processing. A bidirectional GRU with 56 hidden units per direction aggregates context\cite{cho2014}. Layer-normalized features undergo both global average and global maximum pooling. The concatenated features pass through dropout at rate 0.2 and two independent linear heads predicting five superclasses and twenty-three subclasses.
+
+The training network contains 112,364 parameters, including 5,175 parameters in the subclass head. Removing this head leaves 107,189 parameters at deployment. Auxiliary supervision influences superclass predictions through the shared backbone while preserving a single student inference path.
+
+\subsection{Hierarchical Knowledge Learning During Training}
+Five superclass labels define the primary task, and twenty-three subclass labels provide finer diagnostic descriptions. Independent superclass and subclass heads use binary cross-entropy (BCE) for the two levels of supervision. ECGFounder\cite{li2025} is fine-tuned on 500 Hz recordings for the same twenty-eight targets. Its outputs supervise the 100 Hz student, restricting the additional information source to training.
+
+To generate held-out soft labels, training folds 1--8 are divided into four groups of two folds. Each teacher is fine-tuned on six folds and generates logits for the remaining two. The teacher associated with each student training record therefore excludes that patient's fold during fine-tuning. Teacher inputs are standardized using one mean and standard deviation across all time points and leads of each recording, preserving inter-lead amplitude ratios. Each teacher is trained for eight epochs using AdamW, batch size 64, weight decay $10^{-2}$, and a one-cycle schedule peaking at $3\times10^{-4}$. Validation fold 9 selects the checkpoint used for evaluation and soft-label generation.
+
+Let $z^s,z^u$ denote the student's superclass and subclass logits, and let $t^s,t^u$ denote the corresponding teacher logits. The complete training objective is
+\begin{align}
+ \mathcal L={}&\operatorname{BCE}(z^s,y)+\operatorname{BCE}(z^u,u)\nonumber\\
+ &+\operatorname{BCE}(z^s,\sigma(t^s))+\operatorname{BCE}(z^u,\sigma(t^u)).
+\end{align}
+The first two terms align student predictions with diagnostic labels, and the last two provide soft supervision from teacher probabilities\cite{hinton2015}. BCE is implemented directly on logits. Each term is averaged over batch samples and the classes of its corresponding head, with unit weights and temperature 1. The two heads predict independently, while subclass supervision shapes their shared features. Cross-fitting ensures that soft labels satisfy the patient-fold exclusion constraint during teacher fine-tuning.
+
+\subsection{Voltage Probes and Model-Response Analysis}
+We evaluate input information and model behavior at two complementary levels. Training-free voltage probes measure the discrimination of voltage statistics before and after preprocessing. Gain perturbations then test whether trained models respond to changes in amplitude.
+
+The probes follow Sokolow--Lyon and Cornell forms\cite{sokolow1949,casale1985}. For centered recordings, the 99th percentile approximates R-wave amplitude $R_\ell$, and the negative first percentile approximates S-wave depth $S_\ell$. We compute
+\begin{equation}
+ V_{\mathrm{SL}}=S_{V1}+\max(R_{V5},R_{V6}),\qquad
+ V_{\mathrm C}=R_{aVL}+S_{V3}.
+\end{equation}
+These statistics are evaluated on millivolt and standardized inputs using ROC-AUC for the left ventricular hypertrophy (LVH) subclass and HYP superclass. Percentiles are computed over each complete ten-second recording, and positive targets are ECG interpretation labels in the database. Gain experiments multiply test waveforms by specified factors while fixing labels, model weights, and validation-derived thresholds. Changes in predicted probabilities and positive-call rates quantify the resulting responses.
+
+\section{Experiments and Results}
+\subsection{Data and Experimental Setup}
+We used PTB-XL 1.0.3\cite{wagner2020}, containing 21,799 recordings from 18,869 patients. After excluding 411 recordings without diagnostic labels, official patient-disjoint folds 1--8, 9, and 10 defined training, validation, and test sets, respectively. These sets contained 17,084, 2,146, and 2,158 recordings. Table~\ref{tab:data} summarizes class distributions across the three partitions. All five diagnostic superclasses were included, with label co-occurrence handled through the multi-label objective.
+\begin{table}[htbp]
+\centering\small
+\caption{Diagnostic-task partitions of PTB-XL 1.0.3. Parentheses indicate the percentage of positive recordings; diagnostic labels can co-occur.}\label{tab:data}
+\begin{tabularx}{\linewidth}{Yrrr}
+\toprule
+Class & Training & Validation & Test \\
+\midrule
+NORM & 7596 (44.46\%) & 955 (44.50\%) & 963 (44.62\%) \\
+MI & 4379 (25.63\%) & 540 (25.16\%) & 550 (25.49\%) \\
+STTC & 4186 (24.50\%) & 528 (24.60\%) & 521 (24.14\%) \\
+CD & 3907 (22.87\%) & 495 (23.07\%) & 496 (22.98\%) \\
+HYP & 2119 (12.40\%) & 268 (12.49\%) & 262 (12.14\%) \\
+Records & 17,084 & 2,146 & 2,158 \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+Students were trained for twenty-four epochs using AdamW\cite{loshchilov2019}, batch size 64, and weight decay $10^{-2}$. A one-cycle schedule peaked at $4\times10^{-3}$, with the increasing phase occupying 15\% of training steps and gradient norms capped at 2. Augmentation comprised random circular shifts, per-record gains of 0.9--1.1, and Gaussian noise with standard deviation 0.01 in the corresponding input units. Evaluation used exponential moving-average weights with nominal decay 0.999, updated every four steps with an initial correction. Validation macro ROC-AUC selected checkpoints. Class-specific thresholds maximized validation F1 over a 0.05--0.95 grid with step 0.01.
+
+Main experiments used seeds 42, 123, 456, 789, and 2025, with results reported as mean and sample standard deviation. Macro ROC-AUC measures classwise ranking, macro average precision (AP) measures precision--recall performance, and macro F1 evaluates decisions at fixed thresholds. AP follows the average-precision definition. Intervals in Table~\ref{tab:effects} use paired metric differences for identical seeds and describe training variability on the fixed test set. The comparisons are reported as exploratory effect estimates.
+
+VOLT-KD input and supervision controls fixed the student backbone, data splits, and training recipe; structural ablations changed only the specified modules. Superclass-only training used five hard labels, superclass-plus-subclass training added subclass targets, and complete supervision further incorporated ECGFounder soft labels. Cross-backbone input experiments used a local MSCA-Mamba implementation with batch size 16, learning rate and weight decay $10^{-4}$, and at most thirty epochs. Early stopping used a patience of seven epochs. Millivolt inputs were median-centered, whereas z-score inputs were mean-centered and scaled by their standard deviations. Student noise augmentation was applied in each representation's own units, so input comparisons evaluated each preprocessing-and-augmentation combination. The main comparison used published MSCA-Mamba results. Input controls, perturbations, subgroup analyses, and efficiency measurements used predictions and measurements from the local implementation.
+\subsection{Overall Comparison with Existing Methods}
+VOLT-KD improved both multi-label ranking and classification decisions with approximately one hundred thousand deployed parameters (Table~\ref{tab:main}). Macro ROC-AUC was $0.9298\pm0.0012$, compared with the published MSCA-Mamba result of $0.8998\pm0.0022$. Macro PR-AUC/AP and F1 were 0.8274 and 0.7542, respectively, compared with published values of 0.7651 and 0.7038. Micro-averaged metrics, weighted F1, and subset accuracy also increased. Improvements in macro metrics indicate gains when classes receive equal weight. Higher subset accuracy means that more recordings had all five labels predicted correctly. The complete framework therefore improved both classwise ranking and recording-level multi-label predictions.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Full metric comparison with MSCA-Mamba. MSCA-Mamba values are taken directly from Cetintas\cite{cetintas2026}; both methods report means and standard deviations over five seeds. Differences are VOLT-KD minus the published mean; bold denotes the higher result in each row.}\label{tab:main}
+\begin{tabularx}{\linewidth}{Yrrr}
+\toprule
+Metric & \shortstack{MSCA-Mamba\\Published\cite{cetintas2026}} & VOLT-KD & Difference \\
+\midrule
+Macro ROC-AUC & $0.8998\pm0.0022$ & $\boldsymbol{0.9298\pm0.0012}$ & +0.0300 \\
+Micro ROC-AUC & $0.9119\pm0.0052$ & $\boldsymbol{0.9405\pm0.0011}$ & +0.0286 \\
+Macro PR-AUC/AP & $0.7651\pm0.0036$ & $\boldsymbol{0.8274\pm0.0020}$ & +0.0623 \\
+Macro F1 & $0.7038\pm0.0045$ & $\boldsymbol{0.7542\pm0.0009}$ & +0.0504 \\
+Micro F1 & $0.7474\pm0.0074$ & $\boldsymbol{0.7882\pm0.0021}$ & +0.0408 \\
+Weighted F1 & $0.7494\pm0.0039$ & $\boldsymbol{0.7867\pm0.0007}$ & +0.0373 \\
+Subset accuracy & $0.5691\pm0.0143$ & $\boldsymbol{0.6168\pm0.0131}$ & +0.0477 \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize PR-AUC and AP retain the terminology of their respective sources; this study computes average precision. Published means are used for descriptive comparison.}
+\end{table}
+
+
+
+Recent literature further places VOLT-KD within the trade-off between accuracy and model size (Tables~\ref{tab:recent} and~\ref{tab:resource_refs}). Its macro ROC-AUC, PR-AUC/AP, and F1 exceeded the ResNet18, bidirectional Mamba, xLSTM, and CWT-ViT-KAN results reported by Mert et al. Broader references showed different strengths: CNN--FFT reported macro F1 0.770, whereas DBA-ASFNet achieved AUC 0.9166 with approximately 0.030 million parameters. Chimera and fine-tuned ECGFounder reported AUC 0.930, and heterogeneous stacking reached 0.936. A single compact 100 Hz VOLT-KD student approached the ranking performance of some higher-capacity or higher-rate methods while confining rich supervision to training. Literature protocols differ in inputs, pretraining resources, and evaluation. These comparisons characterize the trade-off between resources and performance, while local controlled experiments assess individual component contributions.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Published results for selected structural and lightweight fusion methods from 2025--2026 on PTB-XL's five diagnostic superclasses. All external results are author-reported; parameter counts are in millions (M).}\label{tab:recent}
+\begin{tabularx}{\linewidth}{Yc p{1.65cm} rrrr}
+\toprule
+Method and source & Year & Input & Parameters & \shortstack{Macro\\ROC-AUC} & \shortstack{PR-AUC\\/AP} & \shortstack{Macro\\F1} \\
+\midrule
+MSCA-Mamba\cite{cetintas2026} & 2026 & 100 Hz & 0.1211 & $0.8998\pm0.0022$ & 0.7651 & 0.7038 \\
+1D-ResNet18\cite{mert2026} & 2026 & 100 Hz & -- & 0.922 & 0.797 & 0.738 \\
+Bidirectional Mamba\cite{mert2026} & 2026 & 100 Hz & -- & 0.923 & 0.816 & 0.739 \\
+xLSTM\cite{mert2026} & 2026 & 100 Hz & -- & 0.910 & 0.782 & 0.718 \\
+CWT-ViT-KAN\cite{mert2026} & 2026 & 100 Hz & -- & 0.874 & 0.709 & 0.664 \\
+MS-LTCAF$^{*}$\cite{feng2025} & 2025 & 100 Hz & 24.585 & 0.927$^{*}$ & -- & 0.745$^{*}$ \\
+VOLT-KD (ours) & -- & 100 Hz & \textbf{0.1072} & $\boldsymbol{0.9298\pm0.0012}$ & \textbf{0.8274} & \textbf{0.7542} \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize Bold marks the best reported value for each metric within this table. $^{*}$ MS-LTCAF reports AUC/F1 without explicitly identifying macro averaging and is included as contextual evidence. The four Mert et al. entries come from one 2026 preprint and use seed 42. Chimera, DBA-ASFNet, CNN--FFT, directly fine-tuned foundation models, and ensembles appear in Table~\ref{tab:resource_refs}. VOLT-KD uses teacher supervision during training and deploys only the student. Dataset versions, inputs, thresholds, and training follow each source's protocol; -- indicates an unreported value in the inspected results.}
+\end{table}
+
+VOLT-KD had higher means across all five metrics than the nine compact configurations reported in the MSCA-Mamba paper (Table~\ref{tab:published}). The matched GRU achieved macro AUC 0.9062 and F1 0.7115, below VOLT-KD by 0.0236 and 0.0427, respectively. All 45 configuration--metric comparisons favored VOLT-KD in mean value. The gap persisted across convolutional, recurrent, state-space, and attention variants, indicating room for improvement beyond the choice of network module. This observation is consistent with VOLT-KD's joint emphasis on input information and training supervision.
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{VOLT-KD versus compact network configurations reported in the MSCA-Mamba paper\cite{cetintas2026}. Values are five-seed means and standard deviations; bold denotes the highest mean in each column.}\label{tab:published}
+\begin{tabularx}{\linewidth}{Yrrrrr}
+\toprule
+Configuration & Macro AUC & PR-AUC/AP & Macro F1 & Micro AUC & Micro F1 \\
+\midrule
+MSCA-Mamba & $0.8998\pm0.0022$ & $0.7651\pm0.0036$ & $0.7038\pm0.0045$ & $0.9119\pm0.0052$ & $0.7474\pm0.0074$ \\
+No SE & $0.8997\pm0.0016$ & $0.7644\pm0.0037$ & $0.7012\pm0.0024$ & $0.9128\pm0.0031$ & $0.7462\pm0.0044$ \\
+Multiscale CNN & $0.9012\pm0.0013$ & $0.7644\pm0.0019$ & $0.7010\pm0.0034$ & $0.9175\pm0.0025$ & $0.7492\pm0.0065$ \\
+Single scale + SE + Mamba & $0.8964\pm0.0011$ & $0.7579\pm0.0017$ & $0.6977\pm0.0029$ & $0.9140\pm0.0020$ & $0.7438\pm0.0024$ \\
+Matched Conv1D & $0.9043\pm0.0014$ & $0.7719\pm0.0027$ & $0.7094\pm0.0055$ & $0.9225\pm0.0018$ & $0.7540\pm0.0075$ \\
+Matched GRU & $0.9062\pm0.0014$ & $0.7764\pm0.0026$ & $0.7115\pm0.0036$ & $0.9251\pm0.0010$ & $0.7559\pm0.0024$ \\
+Matched LSTM & $0.9044\pm0.0010$ & $0.7706\pm0.0030$ & $0.7070\pm0.0018$ & $0.9227\pm0.0026$ & $0.7524\pm0.0041$ \\
+Matched Transformer & $0.8971\pm0.0008$ & $0.7569\pm0.0018$ & $0.7018\pm0.0043$ & $0.9161\pm0.0006$ & $0.7484\pm0.0043$ \\
+BiMamba & $0.9047\pm0.0018$ & $0.7712\pm0.0038$ & $0.7098\pm0.0032$ & -- & -- \\
+\midrule
+VOLT-KD (ours) & $\boldsymbol{0.9298\pm0.0012}$ & $\boldsymbol{0.8274\pm0.0020}$ & $\boldsymbol{0.7542\pm0.0009}$ & $\boldsymbol{0.9405\pm0.0011}$ & $\boldsymbol{0.7882\pm0.0021}$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize Weighted F1 and subset accuracy for complete MSCA-Mamba appear in the main comparison table. Metrics omitted for BiMamba in the source are marked --.}
+\end{table}
+
+
+\subsection{Voltage Probes Establish the Discriminative Value of Amplitude}\label{sec:voltage}
+Millivolt representations retained voltage information associated with hypertrophy labels (Figure~\ref{fig:voltage}). On the same test set, the Sokolow--Lyon probe achieved LVH ROC-AUC 0.876 with millivolt inputs and 0.591 after per-lead standardization. Corresponding HYP superclass values were 0.786 and 0.527. Cornell LVH ROC-AUC also decreased from 0.745 to 0.614. Although the two probes combined different lead amplitudes, both lost discrimination after scale normalization. This pattern implicates voltage information rather than a single lead combination.
+
+The voltage probes require no neural-network training, so these differences arise before feature learning. Per-lead z-score normalization changes absolute voltage and inter-lead amplitude ratios, separating the standardized values from the physical quantities on which the probes depend. VOLT-KD removes constant offsets while retaining the millivolt scale, supplying this label-related information directly to a lightweight network without adding parameters. These results support the task-specific motivation for amplitude preservation independently of the backbone and teacher supervision.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{f03_voltage.pdf}
+\caption{Training-free voltage probes. Distributions and discrimination are shown for millivolt and per-lead standardized signals. LVH denotes the left ventricular hypertrophy subclass, and HYP denotes the hypertrophy superclass. Whole-record quantile approximations support information analysis and are not clinical manual measurements.}
+\label{fig:voltage}
+\end{figure}
+
+\subsection{Contribution of Amplitude Preservation to VOLT-KD}\label{sec:input}
+Amplitude preservation produced the main classification gains with a fixed student architecture and remained beneficial under complete supervision (Table~\ref{tab:ladder}). With identical subclass and teacher supervision, millivolt inputs increased macro ROC-AUC from 0.9179 to 0.9298, macro AP from 0.7949 to 0.8274, and macro F1 from 0.7283 to 0.7542. HYP ROC-AUC also increased from 0.8414 to 0.8945. Because capacity and supervision were unchanged, the gains across aggregate metrics and HYP discrimination support voltage preservation as an effective signal representation for knowledge learning.
+
+With only five superclass hard labels, millivolt inputs increased the VOLT-KD student's macro ROC-AUC from 0.9106 to 0.9277. The five-seed paired difference was 0.0171, with a 95\% interval of [0.0142, 0.0201], while macro F1 increased from 0.7189 to 0.7484. HYP ROC-AUC increased by 0.0734, from 0.8285 to 0.9019, accounting arithmetically for approximately 85.7\% of the macro-AUC gain. This concentration agrees with the voltage probes: restoring amplitude-related cues particularly benefits hypertrophy recognition. The benefit was already present before subclass or teacher supervision, establishing input design as a foundational component of the framework.
+
+Input gains under both supervision settings show that amplitude preservation benefits hard-label training and remains compatible with training-time knowledge learning (Figure~\ref{fig:ladder}). Complete VOLT-KD achieved higher macro AUC, AP, and F1, whereas the superclass-only millivolt student achieved higher HYP AUC. Aggregate decision quality and single-class ranking therefore respond differently to supervision. Input and supervision contributions should consequently be evaluated separately.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Input and supervision ablations of the VOLT-KD student. Values are five-seed means and standard deviations. Complete supervision combines superclass hard labels, subclass targets, and ECGFounder soft labels; bold indicates the highest mean per column.}\label{tab:ladder}
+\begin{tabularx}{\linewidth}{Yrrrr}
+\toprule
+Configuration & Macro AUC & HYP AUC & Macro AP & Macro F1 \\
+\midrule
+VOLT-KD (superclasses only, z-score) & $0.9106\pm0.0008$ & $0.8285\pm0.0044$ & $0.7795\pm0.0019$ & $0.7189\pm0.0039$ \\
+VOLT-KD (superclasses only, mV) & $0.9277\pm0.0017$ & $\boldsymbol{0.9019\pm0.0026}$ & $0.8238\pm0.0029$ & $0.7484\pm0.0028$ \\
+VOLT-KD (superclasses + subclasses, mV) & $0.9280\pm0.0023$ & $0.9018\pm0.0033$ & $0.8240\pm0.0043$ & $0.7499\pm0.0022$ \\
+\midrule
+VOLT-KD (complete supervision, z-score) & $0.9179\pm0.0011$ & $0.8414\pm0.0039$ & $0.7949\pm0.0022$ & $0.7283\pm0.0022$ \\
+VOLT-KD (complete, mV) & $\boldsymbol{0.9298\pm0.0012}$ & $0.8945\pm0.0018$ & $\boldsymbol{0.8274\pm0.0020}$ & $\boldsymbol{0.7542\pm0.0009}$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize All configurations use the same VOLT-KD backbone. Superclass-only training uses five hard labels; superclass-plus-subclass training adds subclass targets. Neither uses distillation.}
+\end{table}
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{f11_ablation_ladder.pdf}
+\caption{Macro and HYP ROC-AUC for VOLT-KD input and supervision configurations. Blue diamonds denote complete VOLT-KD, orange points its z-score control under complete supervision, and gray points superclass-only or superclass-plus-subclass ablations. Error bars indicate standard deviations over five seeds.}
+\label{fig:ladder}
+\end{figure}
+
+\subsection{Input-Design Benefits across Backbones}
+Amplitude preservation benefited both the recurrent student backbone and the state-space backbone (Table~\ref{tab:backbones}). For the VOLT-KD backbone, macro AUC increased from 0.9106 to 0.9277 under superclass-only supervision and from 0.9179 to 0.9298 under complete supervision. For local MSCA-Mamba, millivolt inputs increased macro AUC from 0.8950 to 0.9157 with the network and training recipe fixed. The paired increase was 0.0207, with a 95\% interval of [0.0188, 0.0227].
+
+Local MSCA-Mamba's HYP ROC-AUC increased from 0.8013 to 0.8879, accounting for approximately 83.5\% of its macro-AUC gain. This classwise pattern resembled that of the VOLT-KD student. Although the backbones aggregate temporal information differently, both benefited primarily in the amplitude-related class. Their agreement supports an input-level benefit that extends beyond a particular sequence module.
+
+The MSCA-Mamba input comparison did not use the VOLT-KD student's noise augmentation, yet showed the same direction of improvement. Together with the complete-supervision input control, these results support amplitude preservation across the two tested compact backbones and different supervision settings. Input design can therefore improve the information available to existing parameters without requiring greater model capacity.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Input comparisons for VOLT-KD and local MSCA-Mamba. Values are five-seed macro ROC-AUC means and standard deviations. Backbone, supervision, and training settings are fixed within each row; bold indicates the higher result.}\label{tab:backbones}
+\begin{tabularx}{\linewidth}{Yrr}
+\toprule
+Backbone and supervision & z-score Input & mVInput \\
+\midrule
+VOLT-KD (superclass hard labels) & $0.9106\pm0.0008$ & $\boldsymbol{0.9277\pm0.0017}$ \\
+MSCA-Mamba (local) & $0.8950\pm0.0024$ & $\boldsymbol{0.9157\pm0.0012}$ \\
+\midrule
+VOLT-KD (complete) & $0.9179\pm0.0011$ & $\boldsymbol{0.9298\pm0.0012}$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize Complete VOLT-KD uses superclass hard labels, diagnostic subclass targets, and teacher soft labels. Its two input configurations use identical supervision.}
+\end{table}
+
+\subsection{Training-Time Knowledge Improves Classification Decisions}\label{sec:supervision}
+Additional supervision on millivolt representations improved classification decisions while preserving the deployed student architecture. Table~\ref{tab:effects} estimates the incremental contributions of subclass targets and ECGFounder supervision using paired differences across identical seeds.
+
+Adding distillation to superclass-plus-subclass training increased the VOLT-KD student's macro F1 from 0.7499 to 0.7542. The paired gain was 0.0043, with a 95\% interval of [0.0022, 0.0064]. Because thresholds were selected on validation data, this gain reflects improved binary-label decisions. The teacher and auxiliary subclass head are removed at deployment. Additional training knowledge therefore translates into a decision benefit within the fixed student network, without adding inference branches.
+
+Paired macro-AUC gains from subclass supervision and distillation were 0.0003 and 0.0017, respectively, with both intervals including zero. Teacher supervision produced a clearer improvement in macro F1. Relative to the larger AUC gains in input controls, these results distinguish two contributions. Amplitude preservation improves the availability of diagnostic information, while soft supervision further adjusts the precision--recall trade-off at validation-selected thresholds. Subclass targets constrain shared representations at finer diagnostic resolution, although their independent ranking benefit was small in this task.
+
+Teacher knowledge had class-specific effects. The four-teacher ECGFounder ensemble achieved macro AUC 0.9323 and HYP AUC 0.8843. The millivolt VOLT-KD student with subclass supervision but no distillation achieved HYP AUC 0.9018, compared with 0.8945 after distillation. The paired change was $-0.0072$, with a 95\% interval of [$-0.0099$, $-0.0045$]. Improved aggregate F1 coexisted with lower HYP ranking performance, indicating that teacher supervision should be assessed against the target class. The student's amplitude-preserving representation already discriminated HYP well. Knowledge transfer should therefore preserve this strength while using the teacher to improve aggregate decisions.
+
+VOLT-KD trained with in-sample teacher targets achieved macro AUC 0.9304, compared with 0.9298 using cross-fitted teachers. Cross-fitting generates each record's soft label with a teacher that excludes its fine-tuning fold, imposing an explicit holdout constraint on target generation. The in-sample scheme achieved a slightly higher macro-AUC score. The two schemes used six and eight fine-tuning folds, respectively, so teacher training-data quantity also affected their accuracy comparison.
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Paired comparisons of VOLT-KD student configurations. Each entry is the five-seed mean difference and 95\% interval for the first configuration minus the second. Positive values favor the first configuration. Intervals describe training variability and are not adjusted for multiple comparisons.}\label{tab:effects}
+\begin{tabularx}{\linewidth}{Yrrr}
+\toprule
+VOLT-KD student contrast (first $-$ second) & Macro AUC & HYP AUC & Macro F1 \\
+\midrule
+VOLT-KD (superclasses only, mV) $-$ VOLT-KD (superclasses only, z-score) & \shortstack{$+0.0171$\\$[0.0142,\,0.0201]$} & \shortstack{$+0.0734$\\$[0.0682,\,0.0786]$} & \shortstack{$+0.0295$\\$[0.0249,\,0.0340]$} \\
+VOLT-KD (superclasses + subclasses, mV) $-$ VOLT-KD (superclasses only, mV) & \shortstack{$+0.0003$\\$[-0.0011,\,0.0017]$} & \shortstack{$-0.0002$\\$[-0.0058,\,0.0055]$} & \shortstack{$+0.0016$\\$[-0.0014,\,0.0045]$} \\
+VOLT-KD (complete) $-$ VOLT-KD (superclasses + subclasses, no KD) & \shortstack{$+0.0017$\\$[-0.0003,\,0.0038]$} & \shortstack{$-0.0072$\\$[-0.0099,\,-0.0045]$} & \shortstack{$+0.0043$\\$[0.0022,\,0.0064]$} \\
+VOLT-KD (cross-fitted teachers) $-$ VOLT-KD (in-sample teacher) & \shortstack{$-0.0006$\\$[-0.0012,\,-0.0001]$} & \shortstack{$-0.0056$\\$[-0.0080,\,-0.0031]$} & \shortstack{$-0.0018$\\$[-0.0079,\,0.0043]$} \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize All configurations use millivolt inputs except the input-processing control. The no-distillation student uses superclass and subclass targets. Teacher-scheme comparisons evaluate VOLT-KD students trained using the respective soft labels.}
+
+\end{table}
+
+
+Training-time knowledge learning connects high-capacity teachers to a low-capacity deployment model (Table~\ref{tab:teacher} and Figure~\ref{fig:teacher}). A single ECGFounder teacher contains 30,693,964 parameters, and the four-teacher ensemble contains 122,775,856 in total. The deployed VOLT-KD student has 107,189 parameters, approximately $1/286.4$ and $1/1145.4$ of these counts, corresponding to reductions of 99.65\% and 99.91\%. Teacher capacity is thereby separated from deployment capacity, allowing additional knowledge to be used without retaining a large inference network.
+
+At this size, VOLT-KD trailed the four-teacher ensemble by only 0.0025 in macro AUC and 0.0031 in AP. Macro F1 increased from the ensemble's 0.7482 to 0.7542, and HYP AUC increased from 0.8843 to 0.8945. Relative to the single eight-fold teacher, student macro AUC was only 0.0005 lower, while AP and F1 were higher by 0.0025 and 0.0086. The small student thus retained near-teacher aggregate ranking performance with higher threshold-based F1. The no-distillation student already achieved high AUC. This performance--size trade-off therefore reflects the combined input, representation, and supervision design, with distillation's measurable increment concentrated in final classification decisions.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Performance and size of ECGFounder teachers and VOLT-KD students. ECGFounder\cite{li2025} results come from project fine-tuning evaluations; teacher results represent one evaluation per configuration, whereas student values are five-seed means. Parameters follow deployment configurations and are expressed in millions (M). Higher performance and lower parameter counts are preferable; best values are bold.}\label{tab:teacher}
+\begin{tabularx}{\linewidth}{Ycrrrrr}
+\toprule
+Configuration & Input & \shortstack{Parameters\\ (M)} & \shortstack{Macro\\AUC} & \shortstack{Macro\\AP} & \shortstack{Macro\\F1} & HYP AUC \\
+\midrule
+ECGFounder, four-teacher ensemble & 500 Hz & 122.7759 & \textbf{0.9323} & \textbf{0.8305} & 0.7482 & 0.8843 \\
+ECGFounder, eight-fold teacher & 500 Hz & 30.6940 & 0.9303 & 0.8249 & 0.7456 & 0.8795 \\
+VOLT-KD (no distillation) & 100 Hz & \textbf{0.1072} & $0.9280\pm0.0023$ & 0.8240 & 0.7499 & \textbf{0.9018} \\
+VOLT-KD (in-sample teacher) & 100 Hz & \textbf{0.1072} & $0.9304\pm0.0011$ & 0.8282 & \textbf{0.7560} & 0.9001 \\
+VOLT-KD & 100 Hz & \textbf{0.1072} & $0.9298\pm0.0012$ & 0.8274 & 0.7542 & 0.8945 \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize Ensemble parameters sum four independent teachers; test predictions use their averaged logits. Training soft labels come from each record's corresponding held-out teacher. All students share the same deployed architecture without auxiliary heads. Size ratios use unrounded parameter counts.}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.38\textheight,keepaspectratio]{f24_teacher_student.pdf}
+\caption{Classwise and aggregate results for ECGFounder teachers and VOLT-KD students. Teacher predictions average test logits from four held-out models; student results are five-seed means. The figure reports parameters per teacher, with ensemble totals in Table~\ref{tab:teacher}. Published MSCA-Mamba values use seed 42.}\label{fig:teacher}
+\end{figure}
+
+
+\subsection{Classwise and Subclass Analyses Locate Performance Gains}
+Complete VOLT-KD improved overall classification while benefiting amplitude-related diagnoses (Figure~\ref{fig:perclass}). Five-seed ROC-AUC values were 0.9511, 0.9365, 0.9417, and 0.9251 for NORM, MI, STTC, and CD, respectively. HYP ROC-AUC was 0.8945, with AP 0.650. Discrimination across several classes within one compact backbone shows that millivolt inputs remain compatible with morphological and temporal representations. Lower HYP AP also reflects a more difficult precision--recall trade-off at low prevalence, making classwise evaluation essential for assessing amplitude preservation.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.38\textheight,keepaspectratio]{f07_per_class.pdf}
+\caption{Classwise ROC-AUC, PR-AUC/AP, and F1 for complete VOLT-KD and local MSCA-Mamba. Bars and error bars indicate five-seed means and standard deviations. Black horizontal marks show the published MSCA-Mamba seed-42 results\cite{cetintas2026}.}\label{fig:perclass}
+\end{figure}
+
+For seed 42, VOLT-KD achieved HYP ROC-AUC 0.8930, AP 0.6607, and F1 0.6035, exceeding published MSCA-Mamba values of 0.8115, 0.4662, and 0.4682. Recall increased from 0.4924 to 0.6565. Across five seeds, complete VOLT-KD achieved HYP recall 0.6191 and specificity 0.9347 (Table~\ref{tab:class}). Better ranking in this amplitude-related class therefore accompanied detection of more positive recordings. Agreement between the literature comparison and fixed-backbone HYP input controls strengthens the link between voltage information and improved hypertrophy recognition.
+
+Subclass evaluation further identified which diagnoses benefited from the input design (Figure~\ref{fig:subclass} and Table~\ref{tab:subclass}). Among LVH-labeled records, complete VOLT-KD predicted the parent HYP class as positive in 0.721 of cases, compared with 0.595 for local MSCA-Mamba. Parent-class detection rates increased by approximately 9.1 and 11.7 percentage points for IRBBB and AVB, respectively; AMI and IMI also improved. The LVH improvement agrees with the voltage probes and HYP input controls, connecting aggregate gains to a specific diagnosis with voltage-based criteria. The corresponding IVCD rate decreased from 0.327 to 0.289, showing that the shared backbone benefited different diagnostic morphologies unequally.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.58\textheight,keepaspectratio]{f16_subclass_sensitivity.pdf}
+\caption{Parent-class detection rates for complete VOLT-KD and local MSCA-Mamba among records carrying each diagnostic subclass. Subclasses with at least five test recordings are included; values and sample sizes appear in Table~\ref{tab:subclass}.}\label{fig:subclass}
+\end{figure}
+
+\subsection{VOLT-KD Component Ablations and Student Simplification}
+Input replacement, supervision removal, and structural simplification affected performance differently relative to complete VOLT-KD (Table~\ref{tab:loo} and Figure~\ref{fig:loo}). Variants changed the input to z-score, subclass losses, teacher-generation scheme, classification head, GRU layer, or network width, while retaining the corresponding remaining settings. These comparisons distinguish information preservation from network capacity and supervision targets.
+
+Replacing millivolt inputs with z-score inputs reduced complete VOLT-KD's macro AUC from 0.9298 to 0.9179 and HYP AUC from 0.8945 to 0.8414. Retaining subclass and teacher supervision did not compensate for the loss of physical scale. Together with the superclass-only input gains, this result establishes amplitude preservation as a useful basis both before and within complete knowledge learning.
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Complete VOLT-KD and its component-ablation and structural-simplification variants. Values are means and standard deviations over the listed seed counts. Parameter counts refer to training.}\label{tab:loo}
+\begin{tabularx}{\linewidth}{Yrrrrr}
+\toprule
+VOLT-KD student configuration & Seeds & Training parameters & Macro AUC & Macro F1 & HYP AUC \\
+\midrule
+VOLT-KD (complete, mV) & 5 & 112,364 & $0.9298\pm0.0012$ & $0.7542\pm0.0009$ & $0.8945\pm0.0018$ \\
+VOLT-KD (z-score input) & 5 & 112,364 & $0.9179\pm0.0011$ & $0.7283\pm0.0022$ & $0.8414\pm0.0039$ \\
+VOLT-KD (no subclass supervision) & 5 & 112,364 & $0.9299\pm0.0007$ & $0.7519\pm0.0031$ & $0.8943\pm0.0009$ \\
+VOLT-KD (in-sample teacher) & 5 & 112,364 & $0.9304\pm0.0011$ & $0.7560\pm0.0047$ & $\boldsymbol{0.9001\pm0.0034}$ \\
+VOLT-KD (noisy-OR head) & 3 & 111,239 & $\boldsymbol{0.9310\pm0.0004}$ & $0.7537\pm0.0023$ & $0.8970\pm0.0012$ \\
+VOLT-KD (no GRU) & 3 & 59,692 & $0.9303\pm0.0003$ & $0.7541\pm0.0012$ & $0.8934\pm0.0031$ \\
+VOLT-KD (half width) & 3 & \textbf{56,444} & $0.9298\pm0.0018$ & $\boldsymbol{0.7585\pm0.0029}$ & $0.8935\pm0.0024$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize All students use millivolt inputs except the z-score variant. Removing subclass supervision disables subclass hard-label and distillation losses but retains the auxiliary head, leaving training parameters unchanged. Complete VOLT-KD has 112,364 training parameters; the 107,189 in Table~\ref{tab:teacher} excludes the auxiliary head for deployment.}
+
+\end{table}
+
+Removing subclass supervision yielded macro AUC 0.9299, close to the complete model's 0.9298, while F1 decreased from 0.7542 to 0.7519. Subclass targets therefore contributed more to decisions than aggregate ranking. Half-width and no-GRU students used 56,444 and 59,692 training parameters, respectively, while achieving macro AUC 0.9298 and 0.9303. Comparisons paired on the three common seeds showed that simplified networks still formed effective representations from millivolt inputs. Amplitude preservation thus remained valuable without the full GRU or wider channels, providing evidence for further deployment compression.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.45\textheight,keepaspectratio]{f12_ablation_leave_one_out.pdf}
+\caption{Metric differences between VOLT-KD variants and complete VOLT-KD. Differences are variant minus complete model. Points and intervals use paired differences for identical seeds and 95\% $t$ intervals; configurations appear in Table~\ref{tab:loo}.}\label{fig:loo}
+\end{figure}
+
+
+\subsection{Gain and Lead Analyses Reveal Information Use}
+VOLT-KD's HYP decisions changed systematically with input voltage gain (Figure~\ref{fig:gain}). Multiplying the same test recordings by 0.5, 1, and 2 yielded HYP-positive prediction rates of approximately 2.0\%, 13.3\%, and 52.3\%, respectively. Local MSCA-Mamba with per-lead standardization remained near 16.6\%. VOLT-KD's gain response shows that preserved voltage scale actively contributed to predictions instead of remaining unused input information.
+
+Voltage probes link amplitude to hypertrophy labels, fixed-backbone controls show classification gains from retaining this information, and gain interventions confirm that model outputs respond to it. Together, these findings support incorporating physical voltage into compact representations. Gain sensitivity also makes acquisition units and device calibration relevant to output consistency. Preserving diagnostic amplitude therefore requires consistent conversion to millivolts during both training and use.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{f13_gain_probe.pdf}
+\caption{Responses of complete VOLT-KD, its z-score input control, and local MSCA-Mamba to global voltage gain. The same test waveforms are multiplied by each gain while model weights, labels, and validation-derived thresholds remain fixed.}
+\label{fig:gain}
+\end{figure}
+
+Lead configurations alter the spatial observations available to the compact student. Table~\ref{tab:leads} compares complete twelve-lead VOLT-KD with separately trained six-limb-lead and lead-II students. All configurations share the backbone, millivolt preprocessing, and superclass, subclass, and twelve-lead teacher supervision. Unused channels are zeroed within the twelve-channel interface, allowing lead information to be assessed at fixed network capacity.
+
+Six-limb-lead VOLT-KD achieved macro AUC $0.8964\pm0.0015$, exceeding the lead-II student's $0.8566\pm0.0010$ by 0.0398; HYP AUC values were 0.8476 and 0.7901, respectively. At fixed model size, additional limb leads supplied useful multidirectional electrical information. Complete twelve-lead VOLT-KD had the highest means across all four metrics, indicating that amplitude information and lead coverage jointly determine classification performance. A common backbone and training objective can serve different acquisition configurations. Compact computation provides the size advantage, while retaining more leads reduces information loss.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Classification performance of complete twelve-lead VOLT-KD and separately trained six-limb-lead and lead-II students. Values are means and standard deviations over the listed seed counts; bold indicates the highest mean in each column.}\label{tab:leads}
+\begin{tabularx}{\linewidth}{Yrrrrr}
+\toprule
+VOLT-KD student configuration & Seeds & Macro AUC & Macro AP & Macro F1 & HYP AUC \\
+\midrule
+VOLT-KD (twelve leads) & 5 & $\boldsymbol{0.9298\pm0.0012}$ & $\boldsymbol{0.8274\pm0.0020}$ & $\boldsymbol{0.7542\pm0.0009}$ & $\boldsymbol{0.8945\pm0.0018}$ \\
+VOLT-KD (six limb leads) & 3 & $0.8964\pm0.0015$ & $0.7597\pm0.0036$ & $0.6922\pm0.0062$ & $0.8476\pm0.0003$ \\
+VOLT-KD (lead II) & 3 & $0.8566\pm0.0010$ & $0.6828\pm0.0012$ & $0.6367\pm0.0008$ & $0.7901\pm0.0018$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize All students use twelve-lead ECGFounder soft labels, identical student structures, and the same supervision settings. Unused channels are zeroed in a twelve-channel input interface. Limb leads are I, II, III, aVR, aVL, and aVF; the single-lead variant retains only lead II.}
+
+\end{table}
+\subsection{Test-Subgroup Comparison of VOLT-KD and MSCA-Mamba}
+Complete VOLT-KD's advantage over local MSCA-Mamba extended across multiple test subgroups (Figure~\ref{fig:subgroups} and Table~\ref{tab:subgroup}). Fixed trained models were evaluated on the same PTB-XL test fold, grouped by sex, age, device, quality, and label co-occurrence. These comparisons test whether aggregate gains concentrate in a small subset of recording conditions.
+
+For male and female groups, complete VOLT-KD achieved macro AUC 0.940 and 0.920, compared with 0.906 and 0.884 for local MSCA-Mamba. All four age groups improved; among patients aged 75 or older, AUC increased from 0.859 to 0.906. Gains across four major device groups were approximately 0.038--0.040. Improvements across population and device conditions indicate broad internal coverage rather than dominance by one high-performing subgroup.
+
+Among 513 recordings flagged for noise, complete VOLT-KD achieved macro AUC 0.923, compared with 0.887 for local MSCA-Mamba. Among 508 recordings with multiple superclass labels, the corresponding values were 0.896 and 0.852. Gains under natural quality issues and coexisting abnormalities support the compact representation's ability to handle disturbed morphology and multiple diagnostic cues. These conditions extend the controlled input evaluation to within-subgroup performance of complete VOLT-KD. Absolute subgroup scores still differed, and the evidence remains bounded to PTB-XL's internal population and device distributions.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.57\textheight,keepaspectratio]{f17_subgroups.pdf}
+\caption{Macro ROC-AUC of complete VOLT-KD and local MSCA-Mamba across test subgroups. Blue diamonds denote VOLT-KD and orange triangles local MSCA-Mamba. Points are five-seed mean metrics; horizontal bars are 95\% intervals from 300 within-subgroup recording-level bootstrap samples. Both models use the same test fold, grouped by demographic, device, quality, and label-co-occurrence conditions. Sample sizes and values appear in Table~\ref{tab:subgroup}.}\label{fig:subgroups}
+\end{figure}
+
+\subsection{Probability Quality and Threshold-Based Decisions}
+VOLT-KD also reduced error in the predicted probabilities (Table~\ref{tab:calib} and Figure~\ref{fig:calib}). Mean Brier score decreased from 0.096 for local MSCA-Mamba to 0.081 for complete VOLT-KD, with reductions in all five classes. HYP Brier score decreased from 0.088 to 0.067. Lower squared differences between probabilities and labels indicate improved overall probability quality beyond ranking alone. Mean expected calibration error (ECE) was approximately 0.037 for both models, with MI, CD, and HYP changing in the opposite direction to NORM and STTC. Reduced probability error and class-specific calibration improvements therefore represent distinct outcomes.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Classwise probability errors for complete VOLT-KD and local MSCA-Mamba. Values are five-seed means and standard deviations. Lower ECE and Brier scores are preferable.}\label{tab:calib}
+\begin{tabularx}{\linewidth}{Yrrrr}
+\toprule
+Class & Local MSCA-Mamba ECE & VOLT-KD ECE & Local MSCA-Mamba Brier & VOLT-KD Brier \\
+\midrule
+NORM & $\boldsymbol{0.057\pm0.007}$ & $0.065\pm0.005$ & $0.106\pm0.002$ & $\boldsymbol{0.096\pm0.001}$ \\
+MI & $0.039\pm0.005$ & $\boldsymbol{0.036\pm0.007}$ & $0.105\pm0.003$ & $\boldsymbol{0.086\pm0.002}$ \\
+STTC & $\boldsymbol{0.022\pm0.002}$ & $0.027\pm0.004$ & $0.089\pm0.002$ & $\boldsymbol{0.079\pm0.002}$ \\
+CD & $0.040\pm0.007$ & $\boldsymbol{0.034\pm0.001}$ & $0.091\pm0.001$ & $\boldsymbol{0.076\pm0.001}$ \\
+HYP & $0.029\pm0.005$ & $\boldsymbol{0.022\pm0.005}$ & $0.088\pm0.001$ & $\boldsymbol{0.067\pm0.001}$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize ECE uses ten equal-width probability bins.}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.50\textheight,keepaspectratio]{f19_calibration.pdf}
+\caption{Classwise reliability curves and ECE for complete VOLT-KD and local MSCA-Mamba. Reliability curves compare predicted probabilities with observed positive frequencies.}\label{fig:calib}
+\end{figure}
+
+Decision curves assess threshold choices under different false-positive costs (Figure~\ref{fig:dca}). Net benefit is $\mathrm{NB}(t)=\mathrm{TP}/N-\mathrm{FP}/N\cdot t/(1-t)$. A threshold grid from 0.02 to 0.80 in steps of 0.02 yields 200 class--threshold combinations across five classes. VOLT-KD achieved net benefit no lower than local MSCA-Mamba in 195 combinations, or 97.5\%. This consistency indicates that the complete method's decision benefit extends across different false-positive weights rather than depending on a single operating point. Outcomes are database diagnostic labels, so the analysis supports algorithmic threshold decisions.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{f20_decision_curves.pdf}
+\caption{Decision curves for complete VOLT-KD and local MSCA-Mamba across five classes. Net benefit is averaged over five seeds. Reference lines classify every record as positive or negative; the positive NORM event is the normal label.}\label{fig:dca}
+\end{figure}
+
+\subsection{Input Perturbations in VOLT-KD and MSCA-Mamba}
+The value of retained amplitude also depends on performance under noisy inputs. Figure~\ref{fig:noise} compares complete VOLT-KD and local MSCA-Mamba under baseline wander, Gaussian noise, and random lead zeroing, with trained weights fixed. Perturbations are applied to the same physical test signals before each model's original preprocessing and inference pipeline. This design evaluates the complete classifier's response to degraded input quality.
+
+Baseline-wander amplitudes ranged from 0 to 2 mV, Gaussian-noise standard deviations from 0 to 0.2 mV, and zeroed lead counts from 0 to 8. Each perturbation had six tested levels (Table~\ref{tab:noise_full}). Random lead zeroing probes unexpected channel loss in twelve-lead-trained models; separately retrained models for specific lead sets appear in Table~\ref{tab:leads}.
+
+At 0.5 mV baseline wander, complete VOLT-KD achieved macro AUC 0.9058, compared with 0.7309 for local MSCA-Mamba. Relative to clean inputs, the decreases were approximately 0.0240 and 0.1641, respectively. At Gaussian-noise standard deviation 0.1 mV, AUC values were 0.9236 and 0.8499; zeroing four random leads yielded 0.8823 and 0.8315. Complete VOLT-KD retained higher AUC at every tested intensity. Its advantage therefore extended to progressively stronger interference and missing observations. Combined amplitude inputs, compact feature extraction, and augmentation retained useful diagnostic cues under these conditions. Performance still decreased under stronger interference and greater lead loss, showing that physical information preservation and signal quality must be considered together.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.43\textheight,keepaspectratio]{f18_noise_robustness.pdf}
+\caption{Test macro ROC-AUC under input perturbations for complete VOLT-KD and local MSCA-Mamba. Blue diamonds denote VOLT-KD and orange triangles local MSCA-Mamba; points are five-seed means and shaded bands indicate $\pm1$ standard deviation. Panels show (a) low-frequency baseline wander, (b) Gaussian noise, and (c) random lead zeroing. Zero intensity denotes the original test inputs, and model weights are fixed. Complete values appear in Table~\ref{tab:noise_full}.}\label{fig:noise}
+\end{figure}
+
+
+\subsection{Computational Benefits of the Compact Design}
+VOLT-KD combined improved information use with lower computational cost (Table~\ref{tab:efficiency}). Relative to local MSCA-Mamba, deployed parameters decreased by 11.5\% and estimated computation by 81.6\%, with FP32 weights occupying 0.409 MiB. The larger reduction in computation than parameters agrees with reduced processing of long sequences. Multiscale depthwise convolution lowers temporal-filtering cost, shared pointwise projection controls channel mixing, and two downsampling stages reduce GRU sequence length to one quarter. The efficiency benefit therefore reflects both weight storage and the placement and sequence length of computation.
+
+On the same NVIDIA GB10 platform, batch-256 throughput was 10,397 recordings/s for VOLT-KD and 3,199 for local MSCA-Mamba, a 3.25-fold increase. Single-thread CPU latency was 32.5 ms, approximately 0.33\% of the ten-second input duration. Lower arithmetic cost thus translated into higher batch-processing capacity, while the model also supported CPU inference. Single-record GPU latency was 1.68 ms versus 1.26 ms for the comparator, and peak GPU memory was 17.9 versus 5.8 MiB. The measured advantages were therefore strongest in batch throughput and parameter storage; deployment choices must also consider latency and memory requirements.
+
+Achieving macro AUC 0.9298 with 107,189 deployed parameters shows that amplitude preservation and training-time knowledge learning do not require a high-capacity inference network. Parameter, computation, and throughput results jointly support the resource design: rich supervision during training and one compact path for physically scaled signals at inference.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Computational characteristics of eight architectures on the same NVIDIA GB10 platform. The VOLT-KD student's auxiliary head is removed. All parameter counts and computational measurements come from local implementations.}\label{tab:efficiency}
+\begin{tabularx}{\linewidth}{Yrrrrrr}
+\toprule
+Model & Parameters & MFLOPs & \shortstack{GPU latency\\ms} & \shortstack{Throughput\\records/s} & \shortstack{GPU memory\\MiB} & \shortstack{CPU latency\\ms} \\
+\midrule
+VOLT-KD & 107,189 & \textbf{30.1} & 1.68 & 10,397 & 17.9 & 32.5 \\
+MSCA-Mamba & 121,149 & 163.7 & 1.26 & 3,199 & 5.8 & -- \\
+BiMamba & 214,077 & 292.7 & 1.66 & 1,788 & 6.6 & -- \\
+Matched Conv1D & 120,435 & 169.0 & 1.05 & 7,506 & 2.4 & 6.0 \\
+Matched GRU & 120,906 & 53.6 & 2.68 & 4,663 & 16.2 & 81.8 \\
+Matched LSTM & 120,953 & 50.6 & 2.78 & 4,930 & 16.7 & 41.0 \\
+Matched Transformer & 121,405 & 34.6 & 1.60 & 2,702 & 3.7 & 27.2 \\
+Multiscale CNN & \textbf{51,141} & 34.6 & \textbf{0.54} & \textbf{17,066} & \textbf{1.5} & \textbf{1.9} \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize GPU latency uses batch size 1, throughput uses batch size 256, and CPU execution uses one thread. Parameter-matched controls and BiMamba are timed with untrained weights to measure architectural cost. MSCA-Mamba and the student use trained weights; -- indicates unavailable CPU timing.}
+\end{table}
+
+
+Among eight local architectures, VOLT-KD had the lowest estimated computation at 30.1 MFLOPs. Its batch throughput exceeded matched Conv1D, GRU, LSTM, Transformer, and both Mamba configurations, while the smaller multiscale CNN was faster (Figure~\ref{fig:efficiency}). These differences show that parameters, arithmetic operations, and measured speed respond differently to architectural organization. VOLT-KD combines strong classification performance with low computation, rather than minimizing every resource metric simultaneously.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.45\textheight,keepaspectratio]{f15_efficiency.pdf}
+\caption{Single-record GPU latency, batch throughput, estimated computation, and single-thread CPU latency for eight architectures on the same platform. Configurations and measurement units are provided in Table~\ref{tab:efficiency}.}\label{fig:efficiency}
+\end{figure}
+
+\section{Discussion}
+The effective capacity of a lightweight ECG classifier depends on both network size and the diagnostic information remaining after preprocessing. Whereas MSCA-Mamba emphasizes multiscale feature extraction and temporal aggregation\cite{cetintas2026}, this study incorporates amplitude handling into the same design process. Voltage probes, input controls in two backbones, and gain interventions form a connected evidence chain. Millivolt representations retain hypertrophy-related voltage statistics, compact networks exploit those signals, and the retained amplitude influences predictions. Building on prior amplitude-processing research\cite{nolin2026}, we quantify the benefit and its class distribution in a classifier with approximately one hundred thousand parameters. This establishes the practical value of preserving input information for resource-constrained learning.
+
+Input design, structural compression, and knowledge learning serve distinct roles in VOLT-KD. Amplitude preservation produces the main ranking gains, depthwise separable convolution and sequence downsampling reduces computation, and teacher probabilities improve macro F1 without changing student size. No-GRU and half-width variants retain high AUC, showing that strong performance does not require more complex temporal modules. Small teacher--student AUC differences alongside large parameter-count differences illustrate the separation of training supervision from deployment capacity. The HYP degradation under distillation nevertheless requires knowledge transfer to account for class-specific student strengths. Class-dependent distillation weights and millivolt-input teachers provide direct ways to investigate this trade-off.
+
+Internal subgroup, perturbation, and reduced-lead analyses tested the design under different observation conditions. Complete-model gains extended across multiple populations and devices within the test set and persisted over the tested noise ranges. Reduced-lead training showed that a common backbone can accommodate different observation sets, although fewer leads reduce available diagnostic information. Amplitude sensitivity also requires consistent acquisition gains and millivolt conversion. Current conclusions concern short PTB-XL recordings and ECG interpretation labels; external datasets and real acquisition devices are needed to assess transfer across sources. Input comparisons jointly change centering, scaling, and associated augmentation, while teacher schemes differ in fine-tuning sample quantity. Factorial preprocessing experiments and teachers matched for fine-tuning data could further separate these effects.
+
+\section{Conclusion}
+We proposed VOLT-KD, combining millivolt inputs, compact multiscale representations, and hierarchical training-time knowledge learning for lightweight multi-label ECG classification. Voltage probes and controls in two backbones identified amplitude preservation as the main source of classification gains, particularly for hypertrophy-related labels. The complete model achieved macro ROC-AUC 0.9298 with 107,189 deployed parameters. Teacher supervision further improved macro F1 while revealing a measurable class-specific trade-off. Computational evaluation showed lower estimated operations and higher batch throughput. These findings support designing lightweight ECG classifiers around preserved diagnostic information, targeted training supervision, and compact inference.
+
+\section*{Data Availability}
+PTB-XL 1.0.3 is available through PhysioNet at \url{https://physionet.org/content/ptb-xl/1.0.3/}. Per-seed results, statistical summaries, and configuration records used in this study are retained by the research project.
+
+\begin{thebibliography}{99}
+\bibitem{wagner2020} Wagner P, Strodthoff N, Bousseljot RD, et al. PTB-XL, a large publicly available electrocardiography dataset. \emph{Scientific Data}. 2020;7:154. \url{https://doi.org/10.1038/s41597-020-0495-6}.
+
+\bibitem{cetintas2026} Cetintas D. MSCA-Mamba: A Compact Multi-Scale Mamba Network for Multi-Label ECG Classification. \emph{Diagnostics}. 2026;16(19):3135. \url{https://doi.org/10.3390/diagnostics16193135}.
+
+\bibitem{behrouz2024} Behrouz A, Santacatterina M, Zabih R. Chimera: Effectively Modeling Multivariate Time Series with 2-Dimensional State Space Models. \emph{Advances in Neural Information Processing Systems}. 2024;37:119886--119918. \url{https://proceedings.neurips.cc/paper_files/paper/2024/hash/d8e80772c27beff4ae1676fb147bbf26-Abstract-Conference.html}.
+
+\bibitem{feng2025} Feng N, Chen C, Du P, Gong C, Pei J, Huang D. MS-LTCAF: A Multi-Scale Lead-Temporal Co-Attention Framework for ECG Arrhythmia Detection. \emph{Bioengineering}. 2025;12(9):1007. \url{https://doi.org/10.3390/bioengineering12091007}.
+
+\bibitem{luo2025} Luo K, Huang L, He H, Chen Y, You L, Chen S, Chen J, Liu C. Efficient and Interpretable ECG Abnormality Detection via a Lightweight DSCR-BiGRU-Attention Network with Demographic Fusion. \emph{Mathematics}. 2025;13(23):3882. \url{https://doi.org/10.3390/math13233882}.
+
+\bibitem{malik2026} Malik A, Aras S. A lightweight hybrid framework integrating convolutional neural networks and fast Fourier transform for reliable and calibrated ECG-based cardiac abnormality detection. \emph{PLOS One}. 2026;21(7):e0354834. \url{https://doi.org/10.1371/journal.pone.0354834}.
+
+\bibitem{sokolow1949} Sokolow M, Lyon TP. The ventricular complex in left ventricular hypertrophy as obtained by unipolar precordial and limb leads. \emph{American Heart Journal}. 1949;37(2):161--186. \url{https://doi.org/10.1016/0002-8703(49)90562-1}.
+
+\bibitem{casale1985} Casale PN, Devereux RB, Kligfield P, et al. Electrocardiographic detection of left ventricular hypertrophy: development and prospective validation of improved criteria. \emph{Journal of the American College of Cardiology}. 1985;6(3):572--580. \url{https://doi.org/10.1016/S0735-1097(85)80115-7}.
+
+\bibitem{hancock2009} Hancock EW, Deal BJ, Mirvis DM, et al. AHA/ACCF/HRS Recommendations for the Standardization and Interpretation of the Electrocardiogram: Part V: Electrocardiogram Changes Associated With Cardiac Chamber Hypertrophy. \emph{Journal of the American College of Cardiology}. 2009;53(11):992--1002. \url{https://doi.org/10.1016/j.jacc.2008.12.015}.
+
+\bibitem{nolin2026} Nolin-Lapalme A, Sowa A, Delfrate J, et al. Foundation models for electrocardiogram interpretation: clinical implications. \emph{European Heart Journal}. 2026;47(18):2174--2186. \url{https://doi.org/10.1093/eurheartj/ehaf1119}.
+
+\bibitem{li2025} Li J, Aguirre AD, Moura V, et al. An Electrocardiogram Foundation Model Built on over 10 Million Recordings. \emph{NEJM AI}. 2025;2(7). \url{https://doi.org/10.1056/AIoa2401033}.
+
+\bibitem{mckeen2025} McKeen K, Masood S, Toma A, Rubin B, Wang B. ECG-FM: an open electrocardiogram foundation model. \emph{JAMIA Open}. 2025;8(5):ooaf122. \url{https://doi.org/10.1093/jamiaopen/ooaf122}.
+
+\bibitem{qin2023} Qin Y, Sun L, Chen H, Yang W, Zhang WQ, Fei J, Wang G. MVKT-ECG: Efficient single-lead ECG classification for multi-label arrhythmia by multi-view knowledge transferring. \emph{Computers in Biology and Medicine}. 2023;166:107503. \url{https://doi.org/10.1016/j.compbiomed.2023.107503}.
+
+\bibitem{mehari2022} Mehari T, Strodthoff N. Self-supervised representation learning from 12-lead ECG data. \emph{Computers in Biology and Medicine}. 2022;141:105114. \url{https://doi.org/10.1016/j.compbiomed.2021.105114}.
+
+\bibitem{vaid2023} Vaid A, Jiang J, Sawant A, et al. A foundational vision transformer improves diagnostic performance for electrocardiograms. \emph{npj Digital Medicine}. 2023;6:108. \url{https://doi.org/10.1038/s41746-023-00840-9}.
+
+\bibitem{mert2026} Mert YE, Akdo\u{g}an E, \"{U}vet H. Multi-Label 12-Lead ECG Classification on the PTB-XL Dataset: A Comparative Evaluation of Deep Learning Architectures and Heterogeneous Ensemble Approaches. \emph{arXiv preprint}. 2026;2609.12803v1. \url{https://arxiv.org/abs/2609.12803}.
+
+\bibitem{howard2017} Howard AG, Zhu M, Chen B, et al. MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications. \emph{arXiv}. 2017;1704.04861. \url{https://arxiv.org/abs/1704.04861}.
+
+\bibitem{cho2014} Cho K, van Merrienboer B, Gulcehre C, et al. Learning Phrase Representations using RNN Encoder--Decoder for Statistical Machine Translation. \emph{Proceedings of EMNLP}. 2014;1724--1734. \url{https://doi.org/10.3115/v1/D14-1179}.
+
+\bibitem{hinton2015} Hinton G, Vinyals O, Dean J. Distilling the Knowledge in a Neural Network. \emph{arXiv}. 2015;1503.02531. \url{https://arxiv.org/abs/1503.02531}.
+
+\bibitem{loshchilov2019} Loshchilov I, Hutter F. Decoupled Weight Decay Regularization. \emph{International Conference on Learning Representations}. 2019. \url{https://openreview.net/forum?id=Bkg6RiCqY7}.
+\end{thebibliography}
+
+
+\clearpage\appendix
+\setcounter{table}{0}\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{figure}{0}\renewcommand{\thefigure}{S\arabic{figure}}
+\section{Supplementary Methods and Complete Results}
+\subsection{Comparator Implementation and Measurement Conditions}
+MSCA-Mamba was implemented from its public methodological description\cite{cetintas2026}. Three $12\rightarrow32$ convolutional branches use kernel 7, dilation rates 1/2/4, batch normalization, ReLU, and squeeze-and-excitation with reduction ratio 4. The concatenated 96 channels pass through a $1\times1$ fusion convolution, layer normalization, and a unidirectional Mamba module. Mamba uses state dimension 16, local convolution kernel 4, and expansion factor 2. Global average and maximum pooling feed a $192\rightarrow128\rightarrow64\rightarrow5$ classifier, giving 121,149 parameters. Fusion and classifier widths were chosen to satisfy the parameter constraint. Sequence-block and classifier dropout were set locally to 0.1 and 0.3, respectively.
+
+Local MSCA-Mamba input controls used identical networks and training settings. Millivolt inputs were median-centered, whereas z-score inputs were mean-centered and scaled by their standard deviations. VOLT-KD student noise augmentation used standard deviation 0.01 in the respective input units. ECGFounder test predictions averaged logits from four held-out teachers, each containing approximately 30.69 million parameters. Each student training record received soft labels from its corresponding held-out teacher alone.
+
+Efficiency was measured on NVIDIA GB10, with 500 timed GPU repetitions after warm-up and batch size 256 for throughput. CPU measurements used one thread. Timing covered model forward inference, and storage and memory were reported in MiB. Student deployment measurements excluded the training auxiliary head. Teacher computation belonged to the training-stage cost.
+
+
+\subsection{Data Structure and Complete Voltage-Probe Results}
+PTB-XL diagnostic superclasses can co-occur, so a recording may carry several positive labels (Figure~\ref{fig:dataset}). Independent binary heads and the multi-label loss allow VOLT-KD to represent these relationships. Voltage probes achieved higher ROC-AUC with millivolt representations on both development data and the test fold (Table~\ref{tab:voltage}). Amplitude-related information was therefore present beyond a single test partition.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{f01_dataset.pdf}
+\caption{Diagnostic superclass distributions, co-occurrence, and label counts. Splits are patient-disjoint, and labels can co-occur.}\label{fig:dataset}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Training-free voltage-probe ROC-AUC on development data and the test fold. Development data comprise the training and validation folds.}
+\label{tab:voltage}
+\begin{tabular}{lllrrr}
+\toprule
+Data & Target & Metric & Positives & mV & z-score \\
+\midrule
+Test fold & HYP & Sokolow-Lyon & 262 & \textbf{0.786} & 0.527 \\
+Test fold & HYP & Cornell & 262 & \textbf{0.702} & 0.582 \\
+Test fold & LVH & Sokolow-Lyon & 214 & \textbf{0.876} & 0.591 \\
+Test fold & LVH & Cornell & 214 & \textbf{0.745} & 0.614 \\
+Development & HYP & Sokolow-Lyon & 2387 & \textbf{0.809} & 0.500 \\
+Development & HYP & Cornell & 2387 & \textbf{0.705} & 0.543 \\
+Development & LVH & Sokolow-Lyon & 1918 & \textbf{0.894} & 0.573 \\
+Development & LVH & Cornell & 1918 & \textbf{0.723} & 0.576 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Training and Classwise Prediction Behavior}
+Figure~\ref{fig:training} shows five-seed validation trajectories for VOLT-KD and local MSCA-Mamba; all checkpoints were selected using validation data. Classwise ROC, precision--recall curves, and confusion matrices at validation-selected thresholds appear in Figures~\ref{fig:roc}, \ref{fig:pr}, and~\ref{fig:confusion}, respectively. Table~\ref{tab:class} reports six classwise metrics. These results characterize both ranking and threshold decisions, retaining class differences that a single macro metric would obscure.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{f04_training_curves.pdf}
+\caption{Validation macro ROC-AUC and macro F1 trajectories for complete VOLT-KD and local MSCA-Mamba, each trained with five random seeds.}\label{fig:training}
+\end{figure}
+
+\begin{table}[htbp]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Classwise results of complete VOLT-KD as five-seed means and standard deviations. Bold indicates the highest mean among the five classes in each column.}\label{tab:class}
+\begin{tabularx}{\linewidth}{Yrrrrrr}
+\toprule
+Class & ROC-AUC & AP & F1 & Precision & Recall & Specificity \\
+\midrule
+NORM & $\boldsymbol{0.951\pm0.001}$ & $\boldsymbol{0.932\pm0.002}$ & $\boldsymbol{0.864\pm0.004}$ & $0.801\pm0.016$ & $\boldsymbol{0.938\pm0.012}$ & $0.812\pm0.021$ \\
+MI & $0.937\pm0.002$ & $0.860\pm0.005$ & $0.768\pm0.004$ & $0.737\pm0.017$ & $0.801\pm0.023$ & $0.902\pm0.012$ \\
+STTC & $0.942\pm0.002$ & $0.837\pm0.006$ & $0.779\pm0.004$ & $0.741\pm0.028$ & $0.823\pm0.030$ & $0.908\pm0.016$ \\
+CD & $0.925\pm0.003$ & $0.859\pm0.004$ & $0.768\pm0.008$ & $\boldsymbol{0.835\pm0.017}$ & $0.712\pm0.023$ & $\boldsymbol{0.958\pm0.006}$ \\
+HYP & $0.895\pm0.002$ & $0.650\pm0.011$ & $0.592\pm0.008$ & $0.575\pm0.054$ & $0.619\pm0.065$ & $0.935\pm0.020$ \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.33\textheight,keepaspectratio]{f08_roc.pdf}
+\caption{Classwise ROC curves for complete VOLT-KD and local MSCA-Mamba. Solid lines are five-seed means, and shaded regions span the individual-run curves.}\label{fig:roc}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.33\textheight,keepaspectratio]{f09_pr.pdf}
+\caption{Classwise precision--recall curves for complete VOLT-KD and local MSCA-Mamba.}\label{fig:pr}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.51\textheight,keepaspectratio]{f10_confusion.pdf}
+\caption{Seed-42 binary confusion matrices for local MSCA-Mamba and VOLT-KD. Each class uses its validation-selected threshold.}\label{fig:confusion}
+\end{figure}
+
+\subsection{Additional Literature and Paired-Seed Comparisons}
+All 45 mean differences between VOLT-KD and the nine published MSCA-Mamba configurations were positive (Figure~\ref{fig:vsall}). Comparators span convolutional, recurrent, state-space, and attention architectures, supporting higher aggregate performance within this compact-model set. Intervals were approximated from reported standard deviations and describe seed-run summaries. Published and local case-level predictions were not pooled.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.86\textheight,keepaspectratio]{f06_vs_published.pdf}
+\caption{Differences from 45 reported means across nine configurations in the MSCA-Mamba paper\cite{cetintas2026}. Matched metrics are compared; points are VOLT-KD minus published values, with approximate intervals constructed from reported standard deviations.}\label{fig:vsall}
+\end{figure}
+
+Table~\ref{tab:paired_full} separately estimates uncertainty from training randomness and test-sample variation. Paired-seed $t$ intervals use metric differences for common seeds, whereas recording-level bootstrap intervals use 1,000 test-record resamples. Distillation increased macro F1 by 0.0043 beyond subclass supervision, with a seed interval of [0.0022, 0.0064] and a recording interval of [$-0.0012$, 0.0100]. These results support an F1 gain across repeated training on the fixed test set, while its sample-level increment varies with resampling. Bootstrap tests also report Holm-adjusted results.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Paired results for complete VOLT-KD minus local comparator configurations. Except MSCA-Mamba, all comparators are VOLT-KD backbone ablations. AUC, AP, and F1 are macro-averaged.}\label{tab:paired_full}
+\begin{tabularx}{\linewidth}{Ylrrrr}
+\toprule
+Comparator & Metric & Difference & 95\% Seed interval & 95\% Record interval & $p_{\mathrm{Holm}}$ \\
+\midrule
+MSCA-Mamba (local) & AUC & +0.0348 & [+0.0328, +0.0368] & [+0.0301, +0.0396] & 0.091 \\
+MSCA-Mamba (local) & AP & +0.0738 & [+0.0695, +0.0782] & [+0.0624, +0.0844] & 0.091 \\
+MSCA-Mamba (local) & F1 & +0.0602 & [+0.0568, +0.0635] & [+0.0506, +0.0693] & 0.091 \\
+Superclass only, z-score & AUC & +0.0192 & [+0.0170, +0.0214] & [+0.0158, +0.0229] & 0.091 \\
+Superclass only, z-score & AP & +0.0480 & [+0.0439, +0.0521] & [+0.0376, +0.0572] & 0.091 \\
+Superclass only, z-score & F1 & +0.0353 & [+0.0310, +0.0396] & [+0.0279, +0.0431] & 0.091 \\
+Superclass only, mV & AUC & +0.0020 & [+0.0012, +0.0029] & [+0.0002, +0.0037] & 1.000 \\
+Superclass only, mV & AP & +0.0036 & [+0.0002, +0.0071] & [-0.0013, +0.0081] & 1.000 \\
+Superclass only, mV & F1 & +0.0058 & [+0.0034, +0.0082] & [+0.0002, +0.0110] & 1.000 \\
+Superclass + subclass & AUC & +0.0017 & [-0.0003, +0.0038] & [+0.0001, +0.0032] & 1.000 \\
+Superclass + subclass & AP & +0.0034 & [-0.0017, +0.0085] & [-0.0009, +0.0072] & 1.000 \\
+Superclass + subclass & F1 & +0.0043 & [+0.0022, +0.0064] & [-0.0012, +0.0100] & 1.000 \\
+Complete supervision z-score & AUC & +0.0119 & [+0.0103, +0.0134] & [+0.0089, +0.0151] & 0.091 \\
+Complete supervision z-score & AP & +0.0325 & [+0.0279, +0.0372] & [+0.0230, +0.0415] & 0.091 \\
+Complete supervision z-score & F1 & +0.0259 & [+0.0232, +0.0286] & [+0.0186, +0.0331] & 0.091 \\
+No subclass targets & AUC & -0.0001 & [-0.0021, +0.0019] & [-0.0011, +0.0008] & 1.000 \\
+No subclass targets & AP & -0.0000 & [-0.0027, +0.0027] & [-0.0024, +0.0025] & 1.000 \\
+No subclass targets & F1 & +0.0024 & [-0.0013, +0.0061] & [-0.0018, +0.0061] & 1.000 \\
+In-sample teacher & AUC & -0.0006 & [-0.0012, -0.0001] & [-0.0019, +0.0004] & 1.000 \\
+In-sample teacher & AP & -0.0008 & [-0.0032, +0.0017] & [-0.0039, +0.0018] & 1.000 \\
+In-sample teacher & F1 & -0.0018 & [-0.0079, +0.0043] & [-0.0060, +0.0018] & 1.000 \\
+noisy-OR head & AUC & -0.0008 & [-0.0016, +0.0000] & [-0.0021, +0.0005] & 1.000 \\
+noisy-OR head & AP & -0.0019 & [-0.0137, +0.0099] & [-0.0051, +0.0015] & 1.000 \\
+noisy-OR head & F1 & +0.0008 & [-0.0039, +0.0055] & [-0.0040, +0.0063] & 1.000 \\
+No GRU & AUC & -0.0001 & [-0.0007, +0.0005] & [-0.0014, +0.0013] & 1.000 \\
+No GRU & AP & -0.0019 & [-0.0045, +0.0006] & [-0.0051, +0.0011] & 1.000 \\
+No GRU & F1 & +0.0004 & [-0.0053, +0.0061] & [-0.0055, +0.0056] & 1.000 \\
+Half-width student & AUC & +0.0004 & [-0.0039, +0.0048] & [-0.0008, +0.0017] & 1.000 \\
+Half-width student & AP & -0.0016 & [-0.0188, +0.0157] & [-0.0052, +0.0016] & 1.000 \\
+Half-width student & F1 & -0.0039 & [-0.0137, +0.0059] & [-0.0092, +0.0011] & 1.000 \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+The noisy-OR, no-GRU, and half-width VOLT-KD variants use three common seeds; all other configurations use five common seeds. Bootstrap resampling operates on recordings without clustering repeated recordings from the same patient. Paired analyses are exploratory effect estimates.
+\subsection{Complete Subclass and Subgroup Results}
+Table~\ref{tab:subclass} reports parent-class detection rates for twenty-one diagnostic subclasses. Improvements for LVH, AMI, IMI, IRBBB, and AVB connect complete VOLT-KD's multi-label gains to specific diagnostic morphologies. Differences in subclass sample sizes and outcomes are retained. Demographic, device, and recording-condition subgroups use the same test fold (Table~\ref{tab:subgroup}), with intervals from 300 within-group recording resamples. All test records carry manually validated labels.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Parent-class detection rates for complete VOLT-KD and local MSCA-Mamba among diagnostic-subclass records. Subclasses contain at least five recordings; values are five-seed means. Differences use unrounded results.}\label{tab:subclass}
+\begin{tabularx}{\linewidth}{Ylrrrr}
+\toprule
+Parent & Subclass & Records & Local comparator & VOLT-KD & Difference \\
+\midrule
+CD & LAFB/LPFB & 179 & \textbf{0.834} & 0.829 & -0.004 \\
+CD & IRBBB & 112 & 0.714 & \textbf{0.805} & +0.091 \\
+CD & AVB & 82 & 0.527 & \textbf{0.644} & +0.117 \\
+CD & IVCD & 79 & \textbf{0.327} & 0.289 & -0.038 \\
+CD & CLBBB & 54 & \textbf{0.993} & 0.989 & -0.004 \\
+CD & CRBBB & 54 & \textbf{1.000} & \textbf{1.000} & +0.000 \\
+CD & ILBBB & 8 & \textbf{0.850} & 0.750 & -0.100 \\
+CD & WPW & 8 & \textbf{0.500} & 0.450 & -0.050 \\
+HYP & LVH & 214 & 0.595 & \textbf{0.721} & +0.125 \\
+HYP & LAO/LAE & 42 & 0.310 & \textbf{0.362} & +0.052 \\
+HYP & RVH & 12 & 0.133 & \textbf{0.250} & +0.117 \\
+HYP & RAO/RAE & 10 & 0.120 & \textbf{0.160} & +0.040 \\
+MI & IMI & 327 & 0.765 & \textbf{0.826} & +0.061 \\
+MI & AMI & 306 & 0.801 & \textbf{0.854} & +0.054 \\
+MI & LMI & 20 & \textbf{0.380} & 0.360 & -0.020 \\
+NORM & NORM & 963 & 0.899 & \textbf{0.938} & +0.040 \\
+STTC & STTC & 222 & 0.765 & \textbf{0.766} & +0.001 \\
+STTC & ISC & 128 & 0.925 & \textbf{0.953} & +0.028 \\
+STTC & ISCA & 93 & 0.832 & \textbf{0.869} & +0.037 \\
+STTC & NST & 77 & 0.779 & \textbf{0.803} & +0.023 \\
+STTC & ISCI & 40 & 0.775 & \textbf{0.800} & +0.025 \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Test-subgroup comparison of complete VOLT-KD and local MSCA-Mamba. Values are five-seed mean macro ROC-AUC and recording-level bootstrap intervals. Differences are complete VOLT-KD minus local MSCA-Mamba.}\label{tab:subgroup}
+\begin{tabularx}{\linewidth}{Yrrrr}
+\toprule
+Group & Records & \shortstack{MSCA-Mamba\\ (Local comparator)} & \shortstack{VOLT-KD\\ (Complete model)} & Difference \\
+\midrule
+All records & 2158 & 0.895 [0.887, 0.904] & \textbf{0.930} [0.922, 0.936] & +0.035 \\
+Male & 1110 & 0.906 [0.895, 0.916] & \textbf{0.940} [0.931, 0.947] & +0.034 \\
+Female & 1048 & 0.884 [0.871, 0.896] & \textbf{0.920} [0.909, 0.930] & +0.036 \\
+Age $<40$ & 284 & 0.894 [0.857, 0.925] & \textbf{0.930} [0.905, 0.952] & +0.035 \\
+Age 40--59 & 639 & 0.893 [0.874, 0.911] & \textbf{0.922} [0.901, 0.940] & +0.030 \\
+Age 60--74 & 706 & 0.882 [0.867, 0.896] & \textbf{0.925} [0.913, 0.936] & +0.043 \\
+Age $\geq75$ & 529 & 0.859 [0.840, 0.880] & \textbf{0.906} [0.890, 0.919] & +0.047 \\
+No noise flag & 1645 & 0.897 [0.888, 0.907] & \textbf{0.932} [0.925, 0.939] & +0.035 \\
+Noise flag & 513 & 0.887 [0.865, 0.902] & \textbf{0.923} [0.906, 0.937] & +0.036 \\
+Single superclass & 1650 & 0.855 [0.840, 0.871] & \textbf{0.920} [0.907, 0.931] & +0.065 \\
+Multiple superclasses & 508 & 0.852 [0.838, 0.865] & \textbf{0.896} [0.884, 0.908] & +0.044 \\
+Device: CS-12 & 686 & 0.859 [0.843, 0.877] & \textbf{0.900} [0.886, 0.915] & +0.040 \\
+Device: CS-12   E & 437 & 0.891 [0.863, 0.917] & \textbf{0.929} [0.908, 0.946] & +0.038 \\
+Device: AT-6 C 5.5 & 382 & 0.907 [0.893, 0.924] & \textbf{0.947} [0.934, 0.958] & +0.040 \\
+Device: AT-6     6 & 236 & 0.905 [0.882, 0.930] & \textbf{0.944} [0.924, 0.958] & +0.039 \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\subsection{Complete Perturbation and Reduced-Lead Results}
+Table~\ref{tab:noise_full} reports macro AUC and standard deviations for eighteen test-perturbation settings. Noise is applied in millivolts before each model's preprocessing. When training inputs were reduced from twelve leads to six limb leads, MI and HYP showed larger AUC decreases (Table~\ref{tab:leadclass} and Figure~\ref{fig:leads}). These changes are consistent with the morphological and voltage information supplied by precordial leads. The cost of lead reduction therefore depends on the observation directions needed by each diagnostic task, not only on the number of leads.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Macro ROC-AUC of complete VOLT-KD and local MSCA-Mamba under test perturbations of varying intensity. Values are five-seed means and standard deviations corresponding to Figure~\ref{fig:noise}; trained weights remain fixed.}\label{tab:noise_full}
+\begin{tabularx}{\linewidth}{Yrrr}
+\toprule
+Perturbation & Intensity & \shortstack{MSCA-Mamba\\ (Local comparator)} & \shortstack{VOLT-KD\\ (Complete model)} \\
+\midrule
+Baseline wander (mV) & 0 & $0.8950\pm0.0024$ & $\boldsymbol{0.9298\pm0.0012}$ \\
+Baseline wander (mV) & 0.1 & $0.8808\pm0.0033$ & $\boldsymbol{0.9291\pm0.0012}$ \\
+Baseline wander (mV) & 0.2 & $0.8507\pm0.0077$ & $\boldsymbol{0.9262\pm0.0014}$ \\
+Baseline wander (mV) & 0.5 & $0.7309\pm0.0125$ & $\boldsymbol{0.9058\pm0.0037}$ \\
+Baseline wander (mV) & 1 & $0.5973\pm0.0104$ & $\boldsymbol{0.8032\pm0.0080}$ \\
+Baseline wander (mV) & 2 & $0.5230\pm0.0099$ & $\boldsymbol{0.6070\pm0.0081}$ \\
+Gaussian noise (mV) & 0 & $0.8950\pm0.0024$ & $\boldsymbol{0.9298\pm0.0012}$ \\
+Gaussian noise (mV) & 0.01 & $0.8949\pm0.0023$ & $\boldsymbol{0.9296\pm0.0012}$ \\
+Gaussian noise (mV) & 0.02 & $0.8937\pm0.0021$ & $\boldsymbol{0.9296\pm0.0011}$ \\
+Gaussian noise (mV) & 0.05 & $0.8841\pm0.0018$ & $\boldsymbol{0.9291\pm0.0009}$ \\
+Gaussian noise (mV) & 0.1 & $0.8499\pm0.0058$ & $\boldsymbol{0.9236\pm0.0011}$ \\
+Gaussian noise (mV) & 0.2 & $0.7720\pm0.0125$ & $\boldsymbol{0.8976\pm0.0041}$ \\
+Lead zeroing & 0 & $0.8950\pm0.0024$ & $\boldsymbol{0.9298\pm0.0012}$ \\
+Lead zeroing & 1 & $0.8853\pm0.0027$ & $\boldsymbol{0.9200\pm0.0015}$ \\
+Lead zeroing & 2 & $0.8714\pm0.0038$ & $\boldsymbol{0.9105\pm0.0018}$ \\
+Lead zeroing & 4 & $0.8315\pm0.0045$ & $\boldsymbol{0.8823\pm0.0010}$ \\
+Lead zeroing & 6 & $0.7678\pm0.0091$ & $\boldsymbol{0.8315\pm0.0027}$ \\
+Lead zeroing & 8 & $0.6763\pm0.0147$ & $\boldsymbol{0.7491\pm0.0084}$ \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Classwise ROC-AUC for VOLT-KD lead configurations. The complete twelve-lead model uses five seeds; separately trained reduced-lead variants use three seeds.}\label{tab:leadclass}
+\begin{tabularx}{\linewidth}{Yrrrrr}
+\toprule
+Input & NORM & MI & STTC & CD & HYP \\
+\midrule
+Twelve leads & $\boldsymbol{0.951\pm0.001}$ & $\boldsymbol{0.937\pm0.002}$ & $\boldsymbol{0.942\pm0.002}$ & $\boldsymbol{0.925\pm0.003}$ & $\boldsymbol{0.895\pm0.002}$ \\
+Six limb leads & $0.929\pm0.000$ & $0.888\pm0.003$ & $0.922\pm0.001$ & $0.896\pm0.004$ & $0.848\pm0.000$ \\
+Lead II only & $0.904\pm0.002$ & $0.827\pm0.001$ & $0.885\pm0.002$ & $0.877\pm0.003$ & $0.790\pm0.002$ \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{f21_reduced_leads.pdf}
+\caption{Aggregate and classwise performance of complete twelve-lead VOLT-KD and its six-limb-lead and lead-II student variants. All configurations use twelve-lead ECGFounder soft labels. Aggregate metrics correspond to Table~\ref{tab:leads}.}\label{fig:leads}
+\end{figure}
+
+\subsection{Ensembles, Parameter Configurations, and Local Attribution}
+Table~\ref{tab:ensemble} compares single-model averages with five-seed probability ensembles. The VOLT-KD ensemble achieved macro AUC 0.9326 and AP 0.8338, above single-model averages of 0.9298 and 0.8274. Macro F1 was 0.7541 versus 0.7542, and subset accuracy was 0.6006 versus 0.6168. Ensembling mainly improved ranking, while threshold-based metrics changed in different directions. The primary configuration remains single-model deployment; ensemble results provide a reference under additional computational budget.
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Single models and five-seed probability ensembles. Single-model rows report means and standard deviations of five independent runs; ensemble rows report one joint evaluation. Bold marks the higher result separately within single-model and ensemble groups.}\label{tab:ensemble}
+\begin{tabularx}{\linewidth}{Yrrrr}
+\toprule
+Configuration & Macro AUC & Macro AP & Macro F1 & Subset accuracy \\
+\midrule
+MSCA-Mamba, Single-model mean & $0.8950\pm0.0024$ & $0.7536\pm0.0033$ & $0.6941\pm0.0021$ & $0.5618\pm0.0219$ \\
+MSCA-Mamba, Five-seed ensemble & 0.9031 & 0.7713 & 0.7044 & 0.5820 \\
+VOLT-KD, Single-model mean & $\boldsymbol{0.9298\pm0.0012}$ & $\boldsymbol{0.8274\pm0.0020}$ & $\boldsymbol{0.7542\pm0.0009}$ & $\boldsymbol{0.6168\pm0.0131}$ \\
+VOLT-KD, Five-seed ensemble & \textbf{0.9326} & \textbf{0.8338} & \textbf{0.7541} & \textbf{0.6006} \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+Parameter count versus AUC reflects the combined resource trade-off of input design and structural simplification (Figure~\ref{fig:pareto}). Training counts include the relevant auxiliary branches; deployment counts appear in Table~\ref{tab:efficiency}. Figure~\ref{fig:saliency} shows five correctly classified, high-confidence examples from complete VOLT-KD with seed 42, one per class. The sign of gradient-times-input indicates the local signal's first-order contribution direction to the current class score. These attributions provide illustrative evidence of waveform use, with interpretation restricted to the displayed records.
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.45\textheight,keepaspectratio]{f14_pareto.pdf}
+\caption{Training parameter counts and macro ROC-AUC of representative compact configurations. Filled points denote complete VOLT-KD, half-width, and no-GRU variants using five, three, and three seeds, respectively. Open points are configurations from the MSCA-Mamba paper\cite{cetintas2026}; remaining points are local experimental configurations.}\label{fig:pareto}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{f23_attribution.pdf}
+\caption{Gradient-times-input attributions for complete VOLT-KD. One correctly classified seed-42 test record per class is shown using three leads. Orange and blue indicate positive and negative contributions to the class score, respectively.}\label{fig:saliency}
+\end{figure}
+
+\subsection{Extended Literature References}
+The extended comparison covers different information and computational resources (Table~\ref{tab:resource_refs}). Chimera models multivariate time series, DBA-ASFNet combines waveforms and demographics, and CNN--FFT fuses time- and frequency-domain features. Fine-tuned ECGFounder uses 500 Hz inputs, whereas heterogeneous stacking combines several inference models. VOLT-KD uses foundation-model knowledge during training and deploys one 100 Hz student with approximately one hundred thousand parameters. Differences in input information, training knowledge, and inference paths place these methods at distinct accuracy--resource trade-offs. Literature values retain the original authors' evaluation protocols.
+\begin{table}[H]
+\centering\footnotesize
+\caption{Extended literature comparison. All external values are author-reported. Parameters are in millions (M), and bold denotes the best reported value for each metric in this table.}\label{tab:resource_refs}
+\begin{tabularx}{\linewidth}{Yc p{1.65cm} rrrr}
+\toprule
+Method and source & Year & Input & Parameters & \shortstack{Macro\\ROC-AUC} & \shortstack{PR-AUC\\/AP} & \shortstack{Macro\\F1} \\
+\midrule
+Chimera\cite{behrouz2024} & 2024 & 100 Hz & -- & 0.930 & -- & -- \\
+DBA-ASFNet\cite{luo2025} & 2025 & 100 Hz + age/sex & $\boldsymbol{\sim0.030}$ & 0.9166 & -- & -- \\
+CNN--FFT\cite{malik2026} & 2026 & 500 Hz & 0.0869 & 0.9246 & 0.813 & \textbf{0.770} \\
+Fine-tuned ECGFounder\cite{mert2026} & 2026 & 500 Hz & -- & 0.930 & 0.823 & 0.749 \\
+Heterogeneous stacking\cite{mert2026} & 2026 & Ensemble & -- & \textbf{0.936} & \textbf{0.836} & 0.763 \\
+VOLT-KD (ours) & -- & 100 Hz & 0.1072 & $0.9298\pm0.0012$ & $0.8274\pm0.0020$ & $0.7542\pm0.0009$ \\
+\bottomrule
+\end{tabularx}
+\par\vspace{3pt}{\footnotesize Chimera uses the Superdiag result in Table 2 of the NeurIPS 2024 version. DBA-ASFNet uses Super-Diag. in its Table 3 and additionally receives age and sex. CNN--FFT uses its 500 Hz five-superclass results. Both Mert et al. entries come from Table I of the 2026 preprint, using official PTB-XL 1.0.3 folds and seed 42; this study reports five-seed means and standard deviations.}
+\end{table}
+
+\subsection{Statistical and Literature-Comparison Conventions}
+Paired-seed intervals in the main text are computed as $\bar d\pm t_{0.975,n-1}s_d/\sqrt n$. HYP's arithmetic share of the macro-AUC gain is defined as $\Delta\mathrm{AUC}_{\mathrm{HYP}}/(5\Delta\mathrm{AUC}_{\mathrm{macro}})$, identifying its contribution to the equally weighted aggregate. All local checkpoints and thresholds are selected using validation data.
+
+Literature comparisons retain the reported precision; dataset versions, inputs, and repeated-run settings appear in Tables~\ref{tab:recent} and~\ref{tab:resource_refs}. MS-LTCAF retains the source's AUC/F1 terminology, and CNN--FFT uses a 0.5 threshold.
+\end{document}
